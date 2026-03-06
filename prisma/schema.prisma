@@ -1,0 +1,741 @@
+// DC Flow - Schema de Base de Datos
+// Generado desde el documento de requisitos v2
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MEMBER
+}
+
+enum UserType {
+  MEMBER
+  GUEST
+}
+
+enum SpaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum StatusType {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum PitchResult {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+}
+
+enum PermissionLevel {
+  FULL_EDIT
+  EDIT
+  COMMENT
+  READ_ONLY
+}
+
+enum TeamRole {
+  LEAD
+  MEMBER
+}
+
+enum ActivityType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  DUE_DATE_CHANGED
+  PRIORITY_CHANGED
+  COMMENT_ADDED
+  ATTACHMENT_ADDED
+  DESCRIPTION_UPDATED
+}
+
+enum NotificationType {
+  MENTION
+  TASK_ASSIGNED
+  TASK_UNASSIGNED
+  COMMENT_ADDED
+  STATUS_CHANGED
+  DUE_DATE_SOON
+  DUE_DATE_OVERDUE
+  TASK_COMPLETED
+  APPROVAL_NEEDED
+  APPROVAL_RECEIVED
+  INVITATION
+}
+
+enum TaskRelationType {
+  BLOCKS
+  BLOCKED_BY
+  RELATES_TO
+  DUPLICATES
+  PARENT_OF
+  CHILD_OF
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  URL
+  EMAIL
+  PHONE
+  CURRENCY
+  RATING
+  PROGRESS
+  USER
+  LABEL
+}
+
+enum TemplateType {
+  LIST
+  FOLDER
+  TASK
+}
+
+enum AutoTrigger {
+  STATUS_CHANGED
+  TASK_CREATED
+  DUE_DATE_APPROACHING
+  DUE_DATE_PASSED
+  ASSIGNEE_ADDED
+  PRIORITY_CHANGED
+}
+
+enum AutoAction {
+  CHANGE_STATUS
+  CHANGE_PRIORITY
+  ADD_ASSIGNEE
+  REMOVE_ASSIGNEE
+  SEND_NOTIFICATION
+  MOVE_TO_LIST
+  ADD_COMMENT
+}
+
+// ============================================
+// USUARIOS
+// ============================================
+
+model User {
+  id             String    @id // UUID from Supabase Auth
+  email          String    @unique
+  name           String
+  avatarUrl      String?
+  userType       UserType  @default(MEMBER)
+  role           UserRole  @default(MEMBER)
+  weeklyCapacity Float     @default(40)
+  isActive       Boolean   @default(true)
+  department     String?
+  userAreas      String[]
+
+  // Relaciones
+  spaceMemberships     SpaceMember[]
+  taskAssignments      TaskAssignment[]
+  tasksCreated         Task[]               @relation("TaskCreator")
+  timeEntries          TimeEntry[]
+  comments             Comment[]
+  attachments          Attachment[]
+  annotations          Annotation[]
+  documents            Document[]
+  templates            Template[]
+  activities           Activity[]
+  resourcePermissions  ResourcePermission[]
+  teamMemberships      TeamMember[]
+  notifications        Notification[]       @relation("NotificationRecipient")
+  notificationsActed   Notification[]       @relation("NotificationActor")
+  notificationPref     NotificationPreference?
+  checklistAssignments ChecklistItem[]      @relation("ChecklistAssignee")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// ESPACIOS Y ESTRUCTURA
+// ============================================
+
+model Space {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  color       String
+  icon        String?
+  description String?
+  areas       String[]
+
+  statuses    Status[]
+  members     SpaceMember[]
+  folders     Folder[]
+  lists       List[]
+  documents   Document[]
+  automations Automation[]
+  customFields CustomField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SpaceMember {
+  spaceId String
+  space   Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    SpaceRole @default(MEMBER)
+
+  @@id([spaceId, userId])
+}
+
+model Folder {
+  id              String   @id @default(cuid())
+  name            String
+  spaceId         String
+  space           Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  color           String?
+  useCustomStatus Boolean  @default(false)
+
+  statuses     Status[]
+  lists        List[]
+  customFields CustomField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model List {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  spaceId     String
+  space       Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  folderId    String?
+  folder      Folder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  startDate   DateTime?
+  endDate     DateTime?
+
+  isPitch     Boolean      @default(false)
+  pitchDate   DateTime?
+  pitchResult PitchResult?
+
+  tasks       Task[]
+  documents   Document[]
+  customFields CustomField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// ESTADOS PERSONALIZABLES
+// ============================================
+
+model Status {
+  id       String     @id @default(cuid())
+  name     String
+  color    String
+  order    Int
+  type     StatusType
+
+  spaceId  String?
+  space    Space?     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  folderId String?
+  folder   Folder?    @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([spaceId])
+  @@index([folderId])
+}
+
+// ============================================
+// TAREAS Y SUBTAREAS
+// ============================================
+
+model Task {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?   @db.Text
+  listId         String
+  list           List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  statusId       String
+  status         Status    @relation(fields: [statusId], references: [id])
+  priority       Priority  @default(NORMAL)
+  order          Int?
+
+  startDate      DateTime?
+  dueDate        DateTime?
+  completedAt    DateTime?
+
+  estimatedHours Float?
+
+  parentId String?
+  parent   Task?  @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks Task[] @relation("Subtasks")
+
+  blockedById String?
+  blockedBy   Task?  @relation("Dependencies", fields: [blockedById], references: [id], onDelete: SetNull)
+  blocking    Task[] @relation("Dependencies")
+
+  assignments      TaskAssignment[]
+  timeEntries      TimeEntry[]
+  comments         Comment[]
+  attachments      Attachment[]
+  activities       Activity[]
+  checklists       Checklist[]
+  customFieldValues CustomFieldValue[]
+  relationsSource  TaskRelation[] @relation("RelationSource")
+  relationsTarget  TaskRelation[] @relation("RelationTarget")
+  notifications    Notification[]
+
+  createdById String
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listId])
+  @@index([statusId])
+  @@index([parentId])
+  @@index([dueDate])
+}
+
+model TaskAssignment {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+}
+
+// ============================================
+// ARCHIVOS Y PROOFING
+// ============================================
+
+model Attachment {
+  id           String       @id @default(cuid())
+  taskId       String
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  fileType     String
+  fileSize     Int
+  uploadedById String
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+
+  annotations Annotation[]
+
+  createdAt DateTime @default(now())
+}
+
+model Annotation {
+  id           String     @id @default(cuid())
+  attachmentId String
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  content      String
+  xPosition    Float
+  yPosition    Float
+  resolved     Boolean    @default(false)
+  resolvedById String?
+  resolvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+// ============================================
+// COMENTARIOS Y ACTIVIDAD
+// ============================================
+
+model Comment {
+  id      String @id @default(cuid())
+  taskId  String
+  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+}
+
+model Activity {
+  id       String       @id @default(cuid())
+  taskId   String
+  task     Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User         @relation(fields: [userId], references: [id])
+  type     ActivityType
+  field    String?
+  oldValue String?
+  newValue String?
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+// ============================================
+// DOCUMENTOS / BRIEFS
+// ============================================
+
+model Document {
+  id      String  @id @default(cuid())
+  title   String
+  content Json
+  emoji   String?
+
+  listId  String?
+  list    List?   @relation(fields: [listId], references: [id], onDelete: SetNull)
+  spaceId String?
+  space   Space?  @relation(fields: [spaceId], references: [id], onDelete: SetNull)
+
+  isPublic   Boolean @default(false)
+  isFavorite Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// PLANTILLAS
+// ============================================
+
+model Template {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  type        TemplateType
+  content     Json
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// AUTOMATIZACIONES
+// ============================================
+
+model Automation {
+  id           String      @id @default(cuid())
+  name         String
+  description  String?
+  spaceId      String
+  space        Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  trigger      AutoTrigger
+  triggerValue String?
+  action       AutoAction
+  actionValue  String?
+  isActive     Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// TIME TRACKING
+// ============================================
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  hours       Float
+  date        DateTime @db.Date
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([taskId])
+}
+
+// ============================================
+// CHECKLISTS
+// ============================================
+
+model Checklist {
+  id     String          @id @default(cuid())
+  name   String
+  taskId String
+  task   Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  order  Int             @default(0)
+
+  items ChecklistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  content     String
+  isCompleted Boolean   @default(false)
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  order       Int       @default(0)
+  assigneeId  String?
+  assignee    User?     @relation("ChecklistAssignee", fields: [assigneeId], references: [id])
+  dueDate     DateTime?
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([checklistId])
+}
+
+// ============================================
+// CUSTOM FIELDS
+// ============================================
+
+model CustomField {
+  id          String          @id @default(cuid())
+  name        String
+  type        CustomFieldType
+  description String?
+  isRequired  Boolean         @default(false)
+  options     Json?
+
+  spaceId  String?
+  space    Space?  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  listId   String?
+  list     List?   @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  values CustomFieldValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([spaceId])
+  @@index([folderId])
+  @@index([listId])
+}
+
+model CustomFieldValue {
+  id            String      @id @default(cuid())
+  customFieldId String
+  customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  taskId        String
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  textValue     String?
+  numberValue   Float?
+  dateValue     DateTime?
+  selectValue   String?
+  multiSelect   Json?
+  checkboxValue Boolean?
+  userValue     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customFieldId, taskId])
+  @@index([taskId])
+}
+
+// ============================================
+// RELACIONES ENTRE TAREAS
+// ============================================
+
+model TaskRelation {
+  id           String           @id @default(cuid())
+  type         TaskRelationType
+
+  sourceTaskId String
+  sourceTask   Task @relation("RelationSource", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTaskId String
+  targetTask   Task @relation("RelationTarget", fields: [targetTaskId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@unique([sourceTaskId, targetTaskId, type])
+  @@index([sourceTaskId])
+  @@index([targetTaskId])
+}
+
+// ============================================
+// NOTIFICACIONES
+// ============================================
+
+model Notification {
+  id     String           @id @default(cuid())
+  type   NotificationType
+  userId String
+  user   User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  actorId   String?
+  actor     User?   @relation("NotificationActor", fields: [actorId], references: [id])
+  taskId    String?
+  task      Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  commentId String?
+  listId    String?
+
+  title   String
+  message String?
+  data    Json?
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model NotificationPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailEnabled Boolean @default(true)
+  pushEnabled  Boolean @default(true)
+  inAppEnabled Boolean @default(true)
+
+  mentions      Boolean @default(true)
+  assignments   Boolean @default(true)
+  comments      Boolean @default(true)
+  statusChanges Boolean @default(true)
+  dueDates      Boolean @default(true)
+
+  quietHoursEnabled Boolean @default(false)
+  quietHoursStart   String?
+  quietHoursEnd     String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// EQUIPOS
+// ============================================
+
+model Team {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+
+  members     TeamMember[]
+  permissions ResourcePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TeamMember {
+  teamId   String
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     TeamRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  @@id([teamId, userId])
+}
+
+// ============================================
+// PERMISOS SOBRE RECURSOS
+// ============================================
+
+model ResourcePermission {
+  id     String @id @default(cuid())
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId String?
+  team   Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  spaceId  String?
+  folderId String?
+  listId   String?
+  taskId   String?
+
+  level PermissionLevel
+
+  grantedById String
+  grantedAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([spaceId])
+  @@index([folderId])
+  @@index([listId])
+  @@index([taskId])
+}
+
+// ============================================
+// INVITACIONES
+// ============================================
+
+model Invitation {
+  id    String          @id @default(cuid())
+  email String
+  token String          @unique
+  level PermissionLevel @default(COMMENT)
+
+  spaceId  String?
+  folderId String?
+  listId   String?
+  taskId   String?
+
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}

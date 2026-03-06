@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill:*)",
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(npx wrangler:*)",
+      "Bash(open \"https://dc-flow-app.pages.dev\")",
+      "Bash(open https://dc-flow-app.pages.dev)",
+      "Bash(curl:*)",
+      "Bash(open \"https://af73b6b9.dc-flow-app.pages.dev\")",
+      "Bash(open \"https://17200749.dc-flow-app.pages.dev\")"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
