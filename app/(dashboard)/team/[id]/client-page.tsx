@@ -105,7 +105,7 @@ export default function TeamMemberDetailPage() {
     setMember((prev) => prev ? { ...prev, role: newRole } : prev);
     setSavingRole(true);
     try {
-      const res = await fetch(`/api/team/${member.id}`, {
+      const res = await fetch(`/api/team/${member.id}/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
@@ -128,7 +128,7 @@ export default function TeamMemberDetailPage() {
       : [...current, area];
     setSavingAreas(true);
     setMember((prev) => prev ? { ...prev, userAreas: next } : prev);
-    const res = await fetch(`/api/team/${member.id}`, {
+    const res = await fetch(`/api/team/${member.id}/`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAreas: next }),
