@@ -1098,7 +1098,7 @@ export function TaskDetailModalV2() {
         try {
             const { data, error } = await supabase
                 .from("ChecklistItem")
-                .insert({ id: crypto.randomUUID(), content: newItemContent.trim(), checklistId, order: checklist?.items.length || 0, isCompleted: false, createdAt: new Date().toISOString() })
+                .insert({ id: crypto.randomUUID(), content: newItemContent.trim(), checklistId, order: checklist?.items.length || 0, isCompleted: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
                 .select("id")
                 .single();
             if (error) throw error;
