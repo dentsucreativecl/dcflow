@@ -31,7 +31,20 @@ import {
 import { TaskKanban } from "@/components/features/task-kanban";
 import { ProjectFilesTab } from "@/components/features/project-files-tab";
 import { ProjectTimelineTab } from "@/components/features/project-timeline-tab";
-import { ProjectBudgetTab } from "@/components/features/project-budget-tab";
+import dynamic from "next/dynamic";
+
+const ProjectBudgetTab = dynamic(
+  () =>
+    import("@/components/features/project-budget-tab").then((mod) => ({
+      default: mod.ProjectBudgetTab,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 animate-pulse rounded-lg bg-muted" />
+    ),
+  }
+);
 import { ProjectActivityTab } from "@/components/features/project-activity-tab";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";

@@ -26,34 +26,29 @@ export default function TeamPage() {
     async function fetchTeam() {
       const supabase = createClient();
 
-      // Fetch active member users
-      const { data: users } = await supabase
-        .from("User")
-        .select("id, name, email, role, weeklyCapacity, jobTitle, department")
-        .eq("userType", "MEMBER")
-        .eq("isActive", true)
-        .order("name");
-
-      if (!users) {
-        setLoading(false);
-        return;
-      }
-
-      // Fetch team memberships with team info
-      const { data: memberships } = await supabase
-        .from("TeamMember")
-        .select("userId, role, Team(id, name)");
-
-      // Fetch this week's time entries
+      // Compute monday date before parallel queries
       const today = new Date();
       const monday = new Date(today);
       monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
       const mondayStr = monday.toISOString().split("T")[0];
 
-      const { data: timeEntries } = await supabase
-        .from("TimeEntry")
-        .select("userId, hours")
-        .gte("date", mondayStr);
+      // Fetch all data in parallel
+      const [{ data: users }, { data: memberships }, { data: timeEntries }] =
+        await Promise.all([
+          supabase
+            .from("User")
+            .select("id, name, email, role, weeklyCapacity, jobTitle, department")
+            .eq("userType", "MEMBER")
+            .eq("isActive", true)
+            .order("name"),
+          supabase.from("TeamMember").select("userId, role, Team(id, name)"),
+          supabase.from("TimeEntry").select("userId, hours").gte("date", mondayStr),
+        ]);
+
+      if (!users) {
+        setLoading(false);
+        return;
+      }
 
       // Map to TeamMember interface
       const mapped: TeamMember[] = users.map((user) => {
