@@ -29,23 +29,26 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { TaskKanban } from "@/components/features/task-kanban";
-import { ProjectFilesTab } from "@/components/features/project-files-tab";
-import { ProjectTimelineTab } from "@/components/features/project-timeline-tab";
 import dynamic from "next/dynamic";
 
+const tabLoading = () => <div className="h-64 animate-pulse rounded-lg bg-muted" />;
+
 const ProjectBudgetTab = dynamic(
-  () =>
-    import("@/components/features/project-budget-tab").then((mod) => ({
-      default: mod.ProjectBudgetTab,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-64 animate-pulse rounded-lg bg-muted" />
-    ),
-  }
+  () => import("@/components/features/project-budget-tab").then((m) => ({ default: m.ProjectBudgetTab })),
+  { ssr: false, loading: tabLoading }
 );
-import { ProjectActivityTab } from "@/components/features/project-activity-tab";
+const ProjectFilesTab = dynamic(
+  () => import("@/components/features/project-files-tab").then((m) => ({ default: m.ProjectFilesTab })),
+  { ssr: false, loading: tabLoading }
+);
+const ProjectTimelineTab = dynamic(
+  () => import("@/components/features/project-timeline-tab").then((m) => ({ default: m.ProjectTimelineTab })),
+  { ssr: false, loading: tabLoading }
+);
+const ProjectActivityTab = dynamic(
+  () => import("@/components/features/project-activity-tab").then((m) => ({ default: m.ProjectActivityTab })),
+  { ssr: false, loading: tabLoading }
+);
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import {
