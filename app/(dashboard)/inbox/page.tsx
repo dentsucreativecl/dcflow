@@ -22,6 +22,7 @@ interface NotificationItem {
   userName: string;
   userInitials: string;
   taskId?: string;
+  listId?: string;
 }
 
 const getIcon = (type: string) => {
@@ -67,7 +68,7 @@ export default function InboxPage() {
 
         const { data: activities, error } = await supabase
           .from("Activity")
-          .select("id, type, field, oldValue, newValue, createdAt, taskId, task:Task(id, title), user:User(id, name)")
+          .select("id, type, field, oldValue, newValue, createdAt, taskId, task:Task(id, title, listId), user:User(id, name)")
           .order("createdAt", { ascending: false })
           .limit(30);
 
@@ -114,6 +115,7 @@ export default function InboxPage() {
               userName: userName,
               userInitials: initials,
               taskId: a.taskId as string | undefined,
+              listId: (taskObj?.listId as string) || undefined,
             };
           });
           setItems(mapped);
@@ -194,7 +196,9 @@ export default function InboxPage() {
                 )}
                 onClick={() => {
                   markAsRead(item.id);
-                  if (item.taskId) {
+                  if (item.taskId && item.listId) {
+                    router.push(`/lists/${item.listId}/?task=${item.taskId}`);
+                  } else if (item.taskId) {
                     openModal("task-detail-v2", { taskId: item.taskId });
                   }
                 }}
