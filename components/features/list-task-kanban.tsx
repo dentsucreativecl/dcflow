@@ -617,10 +617,11 @@ function KanbanStatusColumn({ status, tasks, onTaskClick, focusedTaskId, onTaskF
         <div
             ref={setNodeRef}
             className={cn(
-                "flex-shrink-0 w-72 flex flex-col bg-muted/30 rounded-lg max-h-full transition-colors",
+                "flex-shrink-0 w-72 flex flex-col rounded-lg max-h-full transition-colors",
                 isOver && "ring-2 ring-primary bg-primary/5",
                 isOverWip && "bg-red-50/50 dark:bg-red-950/20"
             )}
+            style={!isOver && !isOverWip ? { backgroundColor: status.color + '18' } : undefined}
         >
             {/* Column Header */}
             <div className="flex items-center justify-between p-3 border-b border-border">
