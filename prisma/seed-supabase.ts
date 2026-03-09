@@ -214,30 +214,30 @@ async function main() {
 
     const statuses = [
         // Brand
-        { id: 'status-brand-brief', name: 'Brief Recibido', color: '#DFE1E6', order: 1, type: 'TODO', spaceId: 'space-brand' },
+        { id: 'status-brand-brief', name: 'Brief Recibido', color: '#F2A6A6', order: 1, type: 'TODO', spaceId: 'space-brand' },
         { id: 'status-brand-design', name: 'En Diseño', color: '#E67E22', order: 2, type: 'IN_PROGRESS', spaceId: 'space-brand' },
         { id: 'status-brand-review', name: 'Revisión Cliente', color: '#F39C12', order: 3, type: 'IN_PROGRESS', spaceId: 'space-brand' },
         { id: 'status-brand-done', name: 'Aprobado', color: '#27AE60', order: 4, type: 'DONE', spaceId: 'space-brand' },
 
         // Estrategia
-        { id: 'status-est-research', name: 'Investigación', color: '#DFE1E6', order: 1, type: 'TODO', spaceId: 'space-estrategia' },
+        { id: 'status-est-research', name: 'Investigación', color: '#F2A6A6', order: 1, type: 'TODO', spaceId: 'space-estrategia' },
         { id: 'status-est-analysis', name: 'Análisis', color: '#9B59B6', order: 2, type: 'IN_PROGRESS', spaceId: 'space-estrategia' },
         { id: 'status-est-present', name: 'Presentación', color: '#8E44AD', order: 3, type: 'IN_PROGRESS', spaceId: 'space-estrategia' },
         { id: 'status-est-done', name: 'Aprobado', color: '#27AE60', order: 4, type: 'DONE', spaceId: 'space-estrategia' },
 
         // Creatividad
-        { id: 'status-cre-todo', name: 'Por Hacer', color: '#DFE1E6', order: 1, type: 'TODO', spaceId: 'space-creatividad' },
+        { id: 'status-cre-todo', name: 'Por Hacer', color: '#F2A6A6', order: 1, type: 'TODO', spaceId: 'space-creatividad' },
         { id: 'status-cre-progress', name: 'En Proceso', color: '#F2A6A6', order: 2, type: 'IN_PROGRESS', spaceId: 'space-creatividad' },
         { id: 'status-cre-review', name: 'En Revisión', color: '#17385C', order: 3, type: 'IN_PROGRESS', spaceId: 'space-creatividad' },
         { id: 'status-cre-done', name: 'Completado', color: '#0F4036', order: 4, type: 'DONE', spaceId: 'space-creatividad' },
 
         // Redes Sociales
-        { id: 'status-soc-draft', name: 'Borrador', color: '#DFE1E6', order: 1, type: 'TODO', spaceId: 'space-social' },
+        { id: 'status-soc-draft', name: 'Borrador', color: '#F2A6A6', order: 1, type: 'TODO', spaceId: 'space-social' },
         { id: 'status-soc-scheduled', name: 'Programado', color: '#17385C', order: 2, type: 'IN_PROGRESS', spaceId: 'space-social' },
         { id: 'status-soc-published', name: 'Publicado', color: '#0F4036', order: 3, type: 'DONE', spaceId: 'space-social' },
 
         // Producción
-        { id: 'status-prod-prep', name: 'Pre-producción', color: '#DFE1E6', order: 1, type: 'TODO', spaceId: 'space-produccion' },
+        { id: 'status-prod-prep', name: 'Pre-producción', color: '#F2A6A6', order: 1, type: 'TODO', spaceId: 'space-produccion' },
         { id: 'status-prod-filming', name: 'Filmación', color: '#F2A6A6', order: 2, type: 'IN_PROGRESS', spaceId: 'space-produccion' },
         { id: 'status-prod-edit', name: 'Edición', color: '#17385C', order: 3, type: 'IN_PROGRESS', spaceId: 'space-produccion' },
         { id: 'status-prod-delivered', name: 'Entregado', color: '#0F4036', order: 4, type: 'DONE', spaceId: 'space-produccion' },

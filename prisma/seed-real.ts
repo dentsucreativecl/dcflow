@@ -182,7 +182,7 @@ function getMembersByArea(area: string): string[] {
 
 // Statuses per space (universal set)
 const statusDefs = [
-    { name: 'Por Hacer', color: '#DFE1E6', order: 1, type: 'TODO' as const },
+    { name: 'Por Hacer', color: '#F2A6A6', order: 1, type: 'TODO' as const },
     { name: 'En Proceso', color: '#4A90D9', order: 2, type: 'IN_PROGRESS' as const },
     { name: 'En Revisión', color: '#F5A623', order: 3, type: 'IN_PROGRESS' as const },
     { name: 'Completado', color: '#27AE60', order: 4, type: 'DONE' as const },
