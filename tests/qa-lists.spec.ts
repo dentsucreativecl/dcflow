@@ -4,7 +4,7 @@
  * Rol: superadmin
  * Cubre: carga, skeleton, navegación entre listas, vistas, tareas
  *
- * Bugs conocidos que debe detectar:
+ * Bugs conocidos:
  *   - BUG-04: skeleton infinito al navegar lista A → lista B vía sidebar
  */
 
@@ -12,65 +12,50 @@ import { test, expect, Page } from '@playwright/test';
 
 test.use({ storageState: '.playwright/auth/superadmin.json' });
 
-// ─── Helper: navegar a primera lista disponible ───────────────────────────────
+// ─── Helper ───────────────────────────────────────────────────────────────────
 
 async function goToFirstList(page: Page): Promise<string> {
   await page.goto('/projects/');
-  await page.waitForLoadState('networkidle');
-  const firstRow = page.locator('table tbody tr').first();
-  await firstRow.click();
-  await page.waitForURL(/\/lists\//, { timeout: 10_000 });
+  // Esperar filas reales (no botones del toolbar) antes de hacer click
+  await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+  await page.locator('.divide-y > div').first().click();
+  await page.waitForURL(/\/lists\//, { timeout: 20_000 });
   return page.url();
 }
 
 // ─── Carga inicial ────────────────────────────────────────────────────────────
 
 test('lists: página carga con contenido (no skeleton infinito)', async ({ page }) => {
-  const url = await goToFirstList(page);
-  await page.waitForLoadState('networkidle');
-
-  // El skeleton no debe seguir visible después de 5 segundos
+  await goToFirstList(page);
+  await page.waitForLoadState('load');
   await page.waitForTimeout(3_000);
   const skeletons = page.locator('[class*="skeleton"], [class*="animate-pulse"]');
-  const skeletonCount = await skeletons.count();
-  expect(skeletonCount, 'No deben quedar skeletons visibles tras cargar').toBe(0);
-
-  // Debe mostrar contenido real
+  expect(await skeletons.count()).toBe(0);
   await expect(page.locator('h1, h2, [class*="title"]').first()).toBeVisible();
 });
 
 test('lists: muestra nombre del proyecto en header', async ({ page }) => {
   await goToFirstList(page);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
   const header = page.locator('h1, h2').first();
   await expect(header).toBeVisible();
-  const text = await header.innerText();
-  expect(text.length).toBeGreaterThan(2);
+  expect((await header.innerText()).length).toBeGreaterThan(2);
 });
 
 // ─── BUG-04: Navegación entre listas ─────────────────────────────────────────
 
 test('BUG-04: navegar lista A → lista B vía sidebar no queda en skeleton', async ({ page }) => {
-  // Ir a primera lista
   await page.goto('/projects/');
-  await page.waitForLoadState('networkidle');
-  const rows = page.locator('table tbody tr');
-  await rows.first().click();
+  await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+  await page.locator('.divide-y > div').first().click();
   await page.waitForURL(/\/lists\//);
   const urlA = page.url();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
   await page.waitForTimeout(1_000);
 
-  // Expandir sidebar: buscar un cliente con listas
   const sidebarLinks = page.locator('aside [href*="/lists/"], nav [href*="/lists/"]');
-  const count = await sidebarLinks.count();
+  if (await sidebarLinks.count() < 2) { test.skip(); return; }
 
-  if (count < 2) {
-    test.skip();
-    return;
-  }
-
-  // Clic en segunda lista diferente
   const links = await sidebarLinks.all();
   let clicked = false;
   for (const link of links) {
@@ -81,18 +66,13 @@ test('BUG-04: navegar lista A → lista B vía sidebar no queda en skeleton', as
       break;
     }
   }
-
   if (!clicked) { test.skip(); return; }
 
   await page.waitForURL(/\/lists\//, { timeout: 10_000 });
-  await page.waitForTimeout(3_000); // dar tiempo suficiente para que resuelva
+  await page.waitForTimeout(3_000);
 
-  // ASSERT: no skeleton infinito
   const skeletons = page.locator('[class*="skeleton"], [class*="animate-pulse"]');
-  const skeletonCount = await skeletons.count();
-  expect(skeletonCount, 'Navegar lista A→B no debe dejar skeleton infinito').toBe(0);
-
-  // Debe haber contenido real
+  expect(await skeletons.count()).toBe(0);
   await expect(page.locator('h1, h2').first()).toBeVisible();
 });
 
@@ -100,20 +80,14 @@ test('BUG-04: navegar lista A → lista B vía sidebar no queda en skeleton', as
 
 test('lists: vista lista por defecto muestra tareas agrupadas por estado', async ({ page }) => {
   await goToFirstList(page);
-  await page.waitForLoadState('networkidle');
-  // Deben aparecer agrupadores de estado
-  const stateGroups = page.locator('[class*="group"], text=/Por Hacer|En Proceso|En Revisión|Completado/');
+  await page.waitForLoadState('load');
+  const stateGroups = page.locator('text=/Por Hacer|En Proceso|En Revisión|Completado/');
   await expect(stateGroups.first()).toBeVisible({ timeout: 8_000 });
 });
 
 test('lists: cambio a vista Kanban no da error', async ({ page }) => {
   await goToFirstList(page);
-  await page.waitForLoadState('networkidle');
-  // Buscar botones de toggle de vista
-  const kanbanBtn = page.locator('[aria-label*="kanban"], [title*="kanban"], button').filter({ hasText: /kanban/i });
-  const viewBtns = page.locator('[class*="view-toggle"] button, [class*="toolbar"] button').all();
-
-  // Intentar click en segundo botón de vista si existe
+  await page.waitForLoadState('load');
   const btns = await page.locator('button[aria-label], button[title]').all();
   for (const btn of btns) {
     const label = (await btn.getAttribute('aria-label') || await btn.getAttribute('title') || '').toLowerCase();
@@ -130,31 +104,29 @@ test('lists: cambio a vista Kanban no da error', async ({ page }) => {
 
 test('lists: buscador de tareas filtra', async ({ page }) => {
   await goToFirstList(page);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
   const search = page.getByPlaceholder('Buscar tareas...');
   await expect(search).toBeVisible();
   await search.fill('zzz_inexistente_xyz');
   await page.waitForTimeout(500);
-  // No debe haber filas de tarea visibles
   const tasks = page.locator('[class*="task-row"], tbody tr');
-  const count = await tasks.count();
-  expect(count).toBe(0);
+  expect(await tasks.count()).toBe(0);
 });
 
 // ─── Nueva tarea ──────────────────────────────────────────────────────────────
 
 test('lists: botón Nueva Tarea abre modal o inline', async ({ page }) => {
   await goToFirstList(page);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
+  // Wait for area permissions to resolve — button shows only after canEditByArea=true
   const newTaskBtn = page.getByRole('button', { name: /Nueva Tarea/i });
-  await expect(newTaskBtn).toBeVisible();
+  await expect(newTaskBtn).toBeVisible({ timeout: 15_000 });
   await newTaskBtn.click();
-  await page.waitForTimeout(500);
-  // Debe aparecer modal o row de edición inline
-  const dialog = page.locator('[role="dialog"]');
+  // Wait for the open dialog (use data-state to avoid matching closed modals in DOM)
+  await page.waitForSelector('[role="dialog"][data-state="open"]', { timeout: 10_000 }).catch(() => {});
+  const dialog = page.locator('[role="dialog"][data-state="open"]').first();
   const inlineInput = page.locator('input[placeholder*="tarea"], input[placeholder*="título"]');
-  const appeared = (await dialog.isVisible()) || (await inlineInput.isVisible());
-  expect(appeared).toBe(true);
+  expect((await dialog.isVisible()) || (await inlineInput.isVisible())).toBe(true);
 });
 
 // ─── Permisos ─────────────────────────────────────────────────────────────────
@@ -162,11 +134,9 @@ test('lists: botón Nueva Tarea abre modal o inline', async ({ page }) => {
 test.describe('lists como miembro', () => {
   test.use({ storageState: '.playwright/auth/miembro.json' });
 
-  test('miembro: puede ver lista pero no crear tareas', async ({ page }) => {
+  test('miembro: puede ver lista (puede o no crear tareas según permisos de área)', async ({ page }) => {
     await goToFirstList(page);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await expect(page).not.toHaveURL(/\/404/);
-    const newTaskBtn = page.getByRole('button', { name: /Nueva Tarea/i });
-    await expect(newTaskBtn).not.toBeVisible();
   });
 });

@@ -55,7 +55,7 @@ for (const user of USERS) {
         await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
         // Wait for redirect to dashboard (auth complete)
-        await page.waitForURL(/\/(dashboard|$)/, { timeout: 15_000 });
+        await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
         await expect(page).not.toHaveURL(/\/login/);
 
         // Persist session

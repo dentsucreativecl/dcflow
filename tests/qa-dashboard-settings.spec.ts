@@ -80,16 +80,20 @@ test.describe('Settings — superadmin', () => {
   test('settings: checkboxes de áreas son interactuables', async ({ page }) => {
     await page.goto('/settings/');
     await page.waitForLoadState('networkidle');
-    const checkboxes = page.locator('[role="checkbox"]');
+    // Area management uses native <input type="checkbox"> (not Radix Checkbox)
+    // Need to scroll down to the AreaManagementCard section
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(500);
+    const checkboxes = page.locator('input[type="checkbox"]');
     const count = await checkboxes.count();
     expect(count).toBeGreaterThan(0);
 
     // Click en primer checkbox y verificar que cambia
     const first = checkboxes.first();
-    const initialState = await first.getAttribute('aria-checked');
+    const initialState = await first.isChecked();
     await first.click();
     await page.waitForTimeout(300);
-    const newState = await first.getAttribute('aria-checked');
+    const newState = await first.isChecked();
     expect(newState).not.toBe(initialState);
 
     // Revertir

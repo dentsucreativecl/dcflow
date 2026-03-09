@@ -4,6 +4,8 @@ import path from 'path';
 const BASE = 'http://localhost:3000';
 const authDir = path.join(__dirname, '../.playwright/auth');
 const AFP_SPACE_ID = 'space-afp-planvital';
+// jorge.martinez@dentsu.com UUID (discovered via team page traversal)
+const JORGE_USER_ID = '910b7ed7-bf75-43f6-ac00-c8a3bb346528';
 
 /**
  * Step 1: As superadmin, set AFP PlanVital.areas and jorge's userAreas via API
@@ -22,49 +24,9 @@ test('setup: configure areas for TC-02 scenario', async ({ browser }) => {
     console.log('PATCH space areas status:', spacesRes.status(), await spacesRes.text());
     expect(spacesRes.status()).toBe(200);
 
-    // 1b. Find jorge's user ID by navigating to /team and finding his card link
-    await page.goto(`${BASE}/team`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    // Find jorge's link (UUID segment)
-    const jorgeLink = await page.locator('a[href*="/team/"][href*="-"]').evaluateAll(
-        (els: HTMLAnchorElement[]) => els
-            .map(el => el.href)
-            .filter(href => href.includes('/team/') && !href.endsWith('/team/'))
-    );
-    console.log('Team member links found:', jorgeLink.length);
-
-    // Navigate to jorge's page by email lookup — go through each link to find jorge
-    let jorgeId: string | null = null;
-    for (const href of jorgeLink.slice(0, 5)) {
-        await page.goto(href);
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(500);
-        const email = await page.locator('text=jorge.martinez@dentsu.com').isVisible().catch(() => false);
-        if (email) {
-            jorgeId = href.split('/team/')[1]?.replace(/\/$/, '') ?? null;
-            break;
-        }
-    }
-
-    if (!jorgeId) {
-        console.log('Could not find jorge.martinez by navigating team pages — trying all links');
-        // Fallback: try all links
-        for (const href of jorgeLink) {
-            await page.goto(href);
-            await page.waitForLoadState('networkidle');
-            await page.waitForTimeout(400);
-            const email = await page.locator('text=jorge.martinez@dentsu.com').isVisible().catch(() => false);
-            if (email) {
-                jorgeId = href.split('/team/')[1]?.replace(/\/$/, '') ?? null;
-                break;
-            }
-        }
-    }
-
+    // 1b. Jorge's user ID is known (jorge.martinez@dentsu.com)
+    const jorgeId = JORGE_USER_ID;
     console.log('Jorge user ID:', jorgeId);
-    expect(jorgeId, 'Could not find jorge.martinez user ID').toBeTruthy();
 
     // 1c. Set jorge's userAreas to Diseño + Producción
     const userRes = await context.request.patch(`${BASE}/api/team/${jorgeId}`, {
