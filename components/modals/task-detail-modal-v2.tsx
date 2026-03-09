@@ -491,6 +491,8 @@ export function TaskDetailModalV2() {
                     uploadedBy: Array.isArray(a.uploadedBy) ? a.uploadedBy[0] : a.uploadedBy
                 })) as TaskData["attachments"],
             });
+            // Notify kanban/list to re-fetch tasks so thumbnails update immediately
+            window.dispatchEvent(new CustomEvent('dcflow:refresh'));
         }
     };
 

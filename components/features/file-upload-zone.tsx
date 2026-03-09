@@ -77,6 +77,16 @@ export function FileUploadZone({ taskId, onUploadComplete }: FileUploadZoneProps
                     setError("Error al guardar el archivo: " + dbError.message);
                 } else {
                     setUploadedFiles(prev => [...prev, { name: file.name, size: file.size, type: file.type }]);
+                    // Log activity
+                    await supabase.from("Activity").insert({
+                        id: crypto.randomUUID(),
+                        taskId,
+                        userId: user.id,
+                        type: "ATTACHMENT_ADDED",
+                        field: "attachment",
+                        newValue: file.name,
+                        createdAt: new Date().toISOString(),
+                    });
                 }
             }
             onUploadComplete?.();
