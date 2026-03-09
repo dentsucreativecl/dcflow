@@ -93,15 +93,14 @@ test('sidebar: Settings → carga sin 404', async ({ page }) => {
 
 // ─── Breadcrumbs ──────────────────────────────────────────────────────────────
 
-test('BUG-09: breadcrumb "Proyectos" en /lists/[id] apunta a /lists/ en vez de /projects/', async ({ page }) => {
+test('BUG-09: breadcrumb "Proyectos" en /lists/[id] apunta a /projects/ (regresión)', async ({ page }) => {
   await goToFirstListViaProjects(page);
-  // El componente Breadcrumbs genera un link "Proyectos" → /lists/ (debería ser /projects/)
+  // Breadcrumbs fix: "lists" segment → href="/projects/" not "/lists/"
   const breadcrumb = page.locator('nav a').filter({ hasText: /^Proyectos$/ }).first();
   await expect(breadcrumb).toBeVisible({ timeout: 5_000 });
   const href = await breadcrumb.getAttribute('href');
-  // BUG-09 confirmado: el breadcrumb apunta a /lists/ (404 al navegar) en vez de /projects/
-  expect(href, 'BUG-09: debería apuntar a /projects/ no a /lists/').toMatch(/\/lists/);
-  expect(href).not.toMatch(/\/projects/);
+  expect(href, 'BUG-09: breadcrumb debe apuntar a /projects/ no a /lists/').toMatch(/\/projects/);
+  expect(href).not.toMatch(/\/lists/);
 });
 
 test('breadcrumb: Breadcrumbs component muestra home icon', async ({ page }) => {

@@ -96,8 +96,11 @@ export function Breadcrumbs() {
       label = ROUTE_LABELS[seg] || seg.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
     }
 
+    // "lists" segment is a detail route — its parent breadcrumb should go to /projects/
+    const href = seg === "lists" ? "/projects/" : currentPath;
+
     if (i < segments.length - 1) {
-      crumbs.push({ label, href: currentPath });
+      crumbs.push({ label, href });
     } else {
       crumbs.push({ label });
     }

@@ -1,0 +1,979 @@
+
+Running 99 tests using 3 workers
+
+[1A[2K[1/99] [setup] › tests/setup-auth.ts:49:10 › authenticate: director-proyecto
+[1A[2K[2/99] [setup] › tests/setup-auth.ts:49:10 › authenticate: admin-area
+[1A[2K[3/99] [setup] › tests/setup-auth.ts:49:10 › authenticate: superadmin
+[1A[2K[setup] › tests/setup-auth.ts:49:10 › authenticate: admin-area
+✓ Auth saved: admin-area → /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/.playwright/auth/admin-area.json
+
+[1A[2K[setup] › tests/setup-auth.ts:49:10 › authenticate: director-proyecto
+✓ Auth saved: director-proyecto → /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/.playwright/auth/director-proyecto.json
+
+[1A[2K[setup] › tests/setup-auth.ts:49:10 › authenticate: superadmin
+✓ Auth saved: superadmin → /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/.playwright/auth/superadmin.json
+
+[1A[2K[4/99] [setup] › tests/setup-auth.ts:49:10 › authenticate: miembro
+[1A[2K[setup] › tests/setup-auth.ts:49:10 › authenticate: miembro
+✓ Auth saved: miembro → /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/.playwright/auth/miembro.json
+
+[1A[2K[5/99] [superadmin] › tests/debug-tc02.spec.ts:14:5 › setup: configure areas for TC-02 scenario
+[1A[2K[6/99] [superadmin] › tests/debug-tc02.spec.ts:45:5 › verify: AFP PlanVital Estrategia shows read-only banner for jorge
+[1A[2K[7/99] [superadmin] › tests/qa-clients.spec.ts:36:5 › clients: página /clients/ carga correctamente
+[1A[2K[superadmin] › tests/debug-tc02.spec.ts:14:5 › setup: configure areas for TC-02 scenario
+PATCH space areas status: [33m200[39m {"success":true,"areas":["Estrategia","Social Media","Creatividad"]}
+
+[1A[2KJorge user ID: 910b7ed7-bf75-43f6-ac00-c8a3bb346528
+
+[1A[2KPATCH userAreas status: [33m200[39m {"success":true,"userAreas":["Diseño","Producción"]}
+
+[1A[2K[8/99] [superadmin] › tests/qa-clients.spec.ts:43:5 › clients: muestra tarjetas de clientes
+[1A[2K[9/99] [superadmin] › tests/qa-clients.spec.ts:53:5 › clients: toggle vista lista muestra filas
+[1A[2K[superadmin] › tests/debug-tc02.spec.ts:45:5 › verify: AFP PlanVital Estrategia shows read-only banner for jorge
+List links: [ [32m'http://localhost:3000/lists/list-afp-planvital-estrategia-0/'[39m ]
+
+[1A[2K[10/99] [superadmin] › tests/qa-clients.spec.ts:66:5 › clients: búsqueda filtra por nombre
+[1A[2K[11/99] [superadmin] › tests/qa-clients.spec.ts:77:5 › clients: búsqueda sin resultados muestra estado vacío
+[1A[2K[12/99] [superadmin] › tests/qa-clients.spec.ts:88:5 › clients: modal Nuevo Cliente abre con campos correctos
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/User
+
+[1A[2KResponse body: {"id":"910b7ed7-bf75-43f6-ac00-c8a3bb346528","email":"jorge.martinez@dentsu.com","name":"Jorge Martínez","role":"ADMIN","userType":"MEMBER","avatarUrl":null,"weeklyCapacity":40,"isActive":true,"department":"Diseño","userAreas":["Diseño","Producción"]}
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/List
+
+[1A[2KResponse body: {"id":"list-afp-planvital-estrategia-0","name":"Estrategia Digital AFP PlanVital","spaceId":"space-afp-planvital","space":{"name": "AFP PlanVital", "color": "#3498DB"},"folder":{"name": "Estrategia"}}
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/User
+
+[1A[2KResponse body: {"id":"910b7ed7-bf75-43f6-ac00-c8a3bb346528","email":"jorge.martinez@dentsu.com","name":"Jorge Martínez","role":"ADMIN","userType":"MEMBER","avatarUrl":null,"weeklyCapacity":40,"isActive":true,"department":"Diseño","userAreas":["Diseño","Producción"]}
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Space
+
+[1A[2KResponse body: [{"id":"space-abc","name":"abc","color":"#E67E22","icon":"🏢"}, 
+ {"id":"space-afp-planvital","name":"AFP PlanVital","color":"#3498DB","icon":"🏢"}, 
+ {"id":"space-ccu-catadores","name":"CCU Catadores","color":"#2980B9","icon":"🏢"}, 
+ {"id":"space-ccu-la-barra","name":"CCU La Barra","color":"#E74C3
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/List
+
+[1A[2KResponse body: {"id":"list-afp-planvital-estrategia-0","name":"Estrategia Digital AFP PlanVital","spaceId":"space-afp-planvital","space":{"name": "AFP PlanVital", "color": "#3498DB"},"folder":{"name": "Estrategia"}}
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/User
+
+[1A[2KResponse body: [{"id":"dcb1e1aa-1dd0-49c2-ac5a-844983bc0f26","name":"Agustín Ubillo"}, 
+ {"id":"b66ef680-cbe9-41a3-b1f1-7393d3107844","name":"Álvaro Flores"}, 
+ {"id":"55a244fa-39e2-40c7-ae17-482dbf4ea959","name":"Ana Flores"}, 
+ {"id":"95f94a50-ca03-43c8-8f25-e5ff9b417d83","name":"Andrés Garat"}, 
+ {"id":"cb47a0e
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Notification
+
+[1A[2KResponse body: [{"id":"notif-18","type":"STATUS_CHANGED","userId":"910b7ed7-bf75-43f6-ac00-c8a3bb346528","actorId":"cb47a0e6-7c03-4432-8cc6-decbd612f1c3","taskId":"task-300","commentId":null,"listId":null,"title":"Cambio de estado","message":"Actividad en tarea de Diseño - UAHC","data":null,"isRead":false,"readAt"
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Space
+
+[1A[2KResponse body: {"areas":["Estrategia","Social Media","Creatividad"]}
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/User
+
+[1A[2KResponse body: {"id":"910b7ed7-bf75-43f6-ac00-c8a3bb346528","email":"jorge.martinez@dentsu.com","name":"Jorge Martínez","role":"ADMIN","userType":"MEMBER","avatarUrl":null,"weeklyCapacity":40,"isActive":true,"department":"Diseño","userAreas":["Diseño","Producción"]}
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Space
+
+[1A[2KResponse body: [{"id":"space-abc","name":"abc","color":"#E67E22","icon":"🏢"}, 
+ {"id":"space-afp-planvital","name":"AFP PlanVital","color":"#3498DB","icon":"🏢"}, 
+ {"id":"space-ccu-catadores","name":"CCU Catadores","color":"#2980B9","icon":"🏢"}, 
+ {"id":"space-ccu-la-barra","name":"CCU La Barra","color":"#E74C3
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/User
+
+[1A[2KResponse body: [{"id":"dcb1e1aa-1dd0-49c2-ac5a-844983bc0f26","name":"Agustín Ubillo"}, 
+ {"id":"b66ef680-cbe9-41a3-b1f1-7393d3107844","name":"Álvaro Flores"}, 
+ {"id":"55a244fa-39e2-40c7-ae17-482dbf4ea959","name":"Ana Flores"}, 
+ {"id":"95f94a50-ca03-43c8-8f25-e5ff9b417d83","name":"Andrés Garat"}, 
+ {"id":"cb47a0e
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Notification
+
+[1A[2KResponse body: [{"id":"notif-18","type":"STATUS_CHANGED","userId":"910b7ed7-bf75-43f6-ac00-c8a3bb346528","actorId":"cb47a0e6-7c03-4432-8cc6-decbd612f1c3","taskId":"task-300","commentId":null,"listId":null,"title":"Cambio de estado","message":"Actividad en tarea de Diseño - UAHC","data":null,"isRead":false,"readAt"
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Space
+
+[1A[2KResponse body: [{"id":"space-abc","name":"abc","color":"#E67E22","icon":"🏢"}, 
+ {"id":"space-afp-planvital","name":"AFP PlanVital","color":"#3498DB","icon":"🏢"}, 
+ {"id":"space-ccu-catadores","name":"CCU Catadores","color":"#2980B9","icon":"🏢"}, 
+ {"id":"space-ccu-la-barra","name":"CCU La Barra","color":"#E74C3
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/User
+
+[1A[2KResponse body: [{"id":"dcb1e1aa-1dd0-49c2-ac5a-844983bc0f26","name":"Agustín Ubillo"}, 
+ {"id":"b66ef680-cbe9-41a3-b1f1-7393d3107844","name":"Álvaro Flores"}, 
+ {"id":"55a244fa-39e2-40c7-ae17-482dbf4ea959","name":"Ana Flores"}, 
+ {"id":"95f94a50-ca03-43c8-8f25-e5ff9b417d83","name":"Andrés Garat"}, 
+ {"id":"cb47a0e
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Task
+
+[1A[2KResponse body: [{"id":"task-235","title":"Mapeo de customer journey","description":"Mapeo de customer journey para el cliente AFP PlanVital","priority":"NORMAL","dueDate":"2026-01-08T12:48:55.636","estimatedHours":8,"status":{"id": "status-afp-planvital-completado", "name": "Completado", "color": "#27AE60"},"assig
+
+[1A[2K---
+
+[1A[2KSupabase request: https://lehdmksmrxmrpuobgwzu.supabase.co/rest/v1/Task
+
+[1A[2KResponse body: [{"id":"task-235","title":"Mapeo de customer journey","description":"Mapeo de customer journey para el cliente AFP PlanVital","priority":"NORMAL","dueDate":"2026-01-08T12:48:55.636","estimatedHours":8,"status":{"id": "status-afp-planvital-completado", "name": "Completado", "color": "#27AE60"},"assig
+
+[1A[2K---
+
+[1A[2KPage h1: Estrategia Digital AFP PlanVital
+
+[1A[2KBanner visible: [33mtrue[39m
+
+[1A[2KNueva Tarea visible: [33mfalse[39m
+
+[1A[2KTop bar HTML (first 500 chars): <h2 class="font-semibold text-foreground">Inicio</h2><div class="flex items-center gap-1"><button class="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent h-7 w-7 text-muted-foreground hover:text-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" str
+
+[1A[2K[13/99] [superadmin] › tests/qa-clients.spec.ts:100:5 › clients: modal Nuevo Cliente cierra con Escape (BUG-06 regresión)
+[1A[2K[14/99] [superadmin] › tests/qa-clients.spec.ts:116:5 › clients: crear cliente con nombre válido
+[1A[2K[15/99] [superadmin] › tests/qa-clients.spec.ts:131:5 › clients: validación muestra error si nombre vacío
+[1A[2K[16/99] [superadmin] › tests/qa-clients.spec.ts:146:5 › clients: click en tarjeta navega a /clients/[id] (BUG-05 regresión)
+[1A[2K[17/99] [superadmin] › tests/qa-clients.spec.ts:160:5 › clients: página de detalle muestra header con nombre
+[1A[2K[18/99] [superadmin] › tests/qa-clients.spec.ts:116:5 › clients: crear cliente con nombre válido (retry #1)
+[1A[2K  1) [superadmin] › tests/qa-clients.spec.ts:116:5 › clients: crear cliente con nombre válido ──────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      126 |   const dialogGone = !(await dialog.isVisible());
+      127 |   const toast = page.locator('[class*="toast"], [class*="sonner"]').filter({ hasText: /creado|añadido/i });
+    > 128 |   expect(dialogGone || await toast.isVisible()).toBe(true);
+          |                                                 ^
+      129 | });
+      130 |
+      131 | test('clients: validación muestra error si nombre vacío', async ({ page }) => {
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-clients.spec.ts:128:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-clients-clients-crear-cliente-con-nombre-válido-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-clients-clients-crear-cliente-con-nombre-válido-superadmin/error-context.md
+
+
+[1A[2K[19/99] [superadmin] › tests/qa-clients.spec.ts:167:5 › clients: tab Proyectos muestra lista de proyectos
+[1A[2K[20/99] [superadmin] › tests/qa-clients.spec.ts:160:5 › clients: página de detalle muestra header con nombre (retry #1)
+[1A[2K[21/99] [superadmin] › tests/qa-clients.spec.ts:146:5 › clients: click en tarjeta navega a /clients/[id] (BUG-05 regresión) (retry #1)
+[1A[2K[22/99] [superadmin] › tests/qa-clients.spec.ts:176:5 › clients: tab Equipo muestra miembros
+[1A[2K  2) [superadmin] › tests/qa-clients.spec.ts:146:5 › clients: click en tarjeta navega a /clients/[id] (BUG-05 regresión) 
+
+    TimeoutError: page.waitForURL: Timeout 15000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+    ============================================================
+
+      152 |   ).catch(() => {});
+      153 |   await page.locator('[class*="hover\\:border-primary"]').first().click();
+    > 154 |   await page.waitForURL(/\/clients\/[a-z0-9-]{8,}/, { timeout: 15_000 });
+          |              ^
+      155 |   expect(page.url()).toMatch(/\/clients\/[a-z0-9-]{8,}/);
+      156 |   expect(page.url()).not.toMatch(/\/projects\/\?space=/);
+      157 |   await expect(page).not.toHaveURL(/\/404/);
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-clients.spec.ts:154:14
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-clients-clients-click-e-3e78c-lients-id-BUG-05-regresión--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-clients-clients-click-e-3e78c-lients-id-BUG-05-regresión--superadmin/error-context.md
+
+
+[1A[2K[23/99] [superadmin] › tests/qa-clients.spec.ts:186:5 › clients: botón Editar visible para superadmin
+[1A[2K  3) [superadmin] › tests/qa-clients.spec.ts:160:5 › clients: página de detalle muestra header con nombre 
+
+    TimeoutError: page.waitForURL: Timeout 15000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+    ============================================================
+
+      27 |   await page.locator('[class*="hover\\:border-primary"]').first().click();
+      28 |   // Require UUID-like segment after /clients/ to confirm navigation to detail page
+    > 29 |   await page.waitForURL(/\/clients\/[a-z0-9-]{8,}/, { timeout: 15_000 });
+         |              ^
+      30 |   // Wait for client detail content to fully render (h1 shows after data loads)
+      31 |   await page.waitForSelector('h1', { timeout: 10_000 });
+      32 | }
+        at goToFirstClient (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-clients.spec.ts:29:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-clients.spec.ts:161:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-clients-clients-página--4f8f2-e-muestra-header-con-nombre-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-clients-clients-página--4f8f2-e-muestra-header-con-nombre-superadmin/error-context.md
+
+
+[1A[2K[24/99] [superadmin] › tests/qa-clients.spec.ts:191:5 › clients: editar cliente pre-carga datos del cliente
+[1A[2K[25/99] [superadmin] › tests/qa-clients.spec.ts:206:7 › clients como miembro › miembro: puede ver lista de clientes
+[1A[2K[26/99] [superadmin] › tests/qa-clients.spec.ts:212:7 › clients como miembro › miembro: no ve botón Editar en detalle cliente
+[1A[2K[27/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:15:7 › Dashboard — superadmin › dashboard: carga sin errores
+[1A[2K[28/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:21:7 › Dashboard — superadmin › dashboard: muestra widgets de métricas
+[1A[2K[29/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:29:7 › Dashboard — superadmin › dashboard: links de tareas atrasadas navegan a lista sin 404
+[1A[2K[30/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:41:7 › Dashboard — superadmin › dashboard: sección "Mis tareas" muestra tareas
+[1A[2K[31/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:54:7 › Dashboard — miembro (datos filtrados) › dashboard: miembro ve solo sus proyectos
+[1A[2K[32/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:68:7 › Settings — superadmin › settings: carga sin 404
+[1A[2K[33/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:74:7 › Settings — superadmin › settings: muestra sección Áreas por Cliente
+[1A[2K[34/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:80:7 › Settings — superadmin › settings: checkboxes de áreas son interactuables
+[1A[2K[35/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:103:7 › Settings — superadmin › settings: cliente QA Test aparece en lista
+[1A[2K[36/99] [superadmin] › tests/qa-dashboard-settings.spec.ts:118:7 › Settings — miembro (acceso restringido) › miembro: settings redirige o muestra acceso restringido
+[1A[2K[37/99] [superadmin] › tests/qa-lists.spec.ts:28:5 › lists: página carga con contenido (no skeleton infinito)
+[1A[2K[38/99] [superadmin] › tests/qa-lists.spec.ts:37:5 › lists: muestra nombre del proyecto en header
+[1A[2K[39/99] [superadmin] › tests/qa-lists.spec.ts:47:5 › BUG-04: navegar lista A → lista B vía sidebar no queda en skeleton
+[1A[2K[40/99] [superadmin] › tests/qa-lists.spec.ts:28:5 › lists: página carga con contenido (no skeleton infinito) (retry #1)
+[1A[2K[41/99] [superadmin] › tests/qa-lists.spec.ts:37:5 › lists: muestra nombre del proyecto en header (retry #1)
+[1A[2K[42/99] [superadmin] › tests/qa-lists.spec.ts:81:5 › lists: vista lista por defecto muestra tareas agrupadas por estado
+[1A[2K  4) [superadmin] › tests/qa-lists.spec.ts:37:5 › lists: muestra nombre del proyecto en header ─────
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      20 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      21 |   await page.locator('.divide-y > div').first().click();
+    > 22 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      23 |   return page.url();
+      24 | }
+      25 |
+        at goToFirstList (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:22:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:38:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-muestra-nombre-del-proyecto-en-header-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-lists-lists-muestra-nombre-del-proyecto-en-header-superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      20 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      21 |   await page.locator('.divide-y > div').first().click();
+    > 22 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      23 |   return page.url();
+      24 | }
+      25 |
+        at goToFirstList (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:22:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:38:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-muestra-nombre-del-proyecto-en-header-superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-lists-lists-muestra-nombre-del-proyecto-en-header-superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-muestra-nombre-del-proyecto-en-header-superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-lists-lists-muestra-nombre-del-proyecto-en-header-superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[43/99] [superadmin] › tests/qa-lists.spec.ts:81:5 › lists: vista lista por defecto muestra tareas agrupadas por estado (retry #1)
+[1A[2K  5) [superadmin] › tests/qa-lists.spec.ts:28:5 › lists: página carga con contenido (no skeleton infinito) 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      20 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      21 |   await page.locator('.divide-y > div').first().click();
+    > 22 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      23 |   return page.url();
+      24 | }
+      25 |
+        at goToFirstList (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:22:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:29:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-página-carg-89449-enido-no-skeleton-infinito--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-lists-lists-página-carg-89449-enido-no-skeleton-infinito--superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+
+      20 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      21 |   await page.locator('.divide-y > div').first().click();
+    > 22 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      23 |   return page.url();
+      24 | }
+      25 |
+        at goToFirstList (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:22:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:29:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-página-carg-89449-enido-no-skeleton-infinito--superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-lists-lists-página-carg-89449-enido-no-skeleton-infinito--superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-página-carg-89449-enido-no-skeleton-infinito--superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-lists-lists-página-carg-89449-enido-no-skeleton-infinito--superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[44/99] [superadmin] › tests/qa-lists.spec.ts:88:5 › lists: cambio a vista Kanban no da error
+[1A[2K[45/99] [superadmin] › tests/qa-lists.spec.ts:105:5 › lists: buscador de tareas filtra
+[1A[2K[46/99] [superadmin] › tests/qa-lists.spec.ts:118:5 › lists: botón Nueva Tarea abre modal o inline
+[1A[2K  6) [superadmin] › tests/qa-lists.spec.ts:81:5 › lists: vista lista por defecto muestra tareas agrupadas por estado 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      20 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      21 |   await page.locator('.divide-y > div').first().click();
+    > 22 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      23 |   return page.url();
+      24 | }
+      25 |
+        at goToFirstList (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:22:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-lists.spec.ts:82:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-lists-lists-vista-lista-31263-tareas-agrupadas-por-estado-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-lists-lists-vista-lista-31263-tareas-agrupadas-por-estado-superadmin/error-context.md
+
+
+[1A[2K[47/99] [superadmin] › tests/qa-lists.spec.ts:137:7 › lists como miembro › miembro: puede ver lista (puede o no crear tareas según permisos de área)
+[1A[2K[48/99] [superadmin] › tests/qa-nav.spec.ts:49:5 › sidebar: Bandeja de entrada → /inbox/
+[1A[2K[49/99] [superadmin] › tests/qa-nav.spec.ts:55:5 › sidebar: Mis tareas → carga sin 404
+[1A[2K[50/99] [superadmin] › tests/qa-nav.spec.ts:60:5 › sidebar: Proyectos → /projects/
+[1A[2K[51/99] [superadmin] › tests/qa-nav.spec.ts:49:5 › sidebar: Bandeja de entrada → /inbox/ (retry #1)
+[1A[2K[52/99] [superadmin] › tests/qa-nav.spec.ts:66:5 › sidebar: Clientes → /clients/
+[1A[2K  7) [superadmin] › tests/qa-nav.spec.ts:49:5 › sidebar: Bandeja de entrada → /inbox/ ──────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/inbox/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      49 | test('sidebar: Bandeja de entrada → /inbox/', async ({ page }) => {
+      50 |   await clickSidebarLink(page, '/inbox/');
+    > 51 |   await expect(page).toHaveURL(/\/inbox/);
+         |                      ^
+      52 |   await assertNoPageError(page);
+      53 | });
+      54 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:51:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Bandeja-de-entrada-→-inbox--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Bandeja-de-entrada-→-inbox--superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/inbox/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      49 | test('sidebar: Bandeja de entrada → /inbox/', async ({ page }) => {
+      50 |   await clickSidebarLink(page, '/inbox/');
+    > 51 |   await expect(page).toHaveURL(/\/inbox/);
+         |                      ^
+      52 |   await assertNoPageError(page);
+      53 | });
+      54 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:51:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Bandeja-de-entrada-→-inbox--superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Bandeja-de-entrada-→-inbox--superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Bandeja-de-entrada-→-inbox--superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-nav-sidebar-Bandeja-de-entrada-→-inbox--superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[53/99] [superadmin] › tests/qa-nav.spec.ts:60:5 › sidebar: Proyectos → /projects/ (retry #1)
+[1A[2K[54/99] [superadmin] › tests/qa-nav.spec.ts:72:5 › sidebar: Tareas → carga sin 404
+[1A[2K[55/99] [superadmin] › tests/qa-nav.spec.ts:66:5 › sidebar: Clientes → /clients/ (retry #1)
+[1A[2K[56/99] [superadmin] › tests/qa-nav.spec.ts:77:5 › sidebar: Equipo → /team/ (via icon bar)
+[1A[2K  8) [superadmin] › tests/qa-nav.spec.ts:60:5 › sidebar: Proyectos → /projects/ ────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/projects/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      60 | test('sidebar: Proyectos → /projects/', async ({ page }) => {
+      61 |   await clickSidebarLink(page, '/projects/');
+    > 62 |   await expect(page).toHaveURL(/\/projects/);
+         |                      ^
+      63 |   await assertNoPageError(page);
+      64 | });
+      65 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:62:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Proyectos-→-projects--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Proyectos-→-projects--superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/projects/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      60 | test('sidebar: Proyectos → /projects/', async ({ page }) => {
+      61 |   await clickSidebarLink(page, '/projects/');
+    > 62 |   await expect(page).toHaveURL(/\/projects/);
+         |                      ^
+      63 |   await assertNoPageError(page);
+      64 | });
+      65 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:62:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Proyectos-→-projects--superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Proyectos-→-projects--superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Proyectos-→-projects--superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-nav-sidebar-Proyectos-→-projects--superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[57/99] [superadmin] › tests/qa-nav.spec.ts:87:5 › sidebar: Settings → carga sin 404
+[1A[2K  9) [superadmin] › tests/qa-nav.spec.ts:66:5 › sidebar: Clientes → /clients/ ──────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/clients/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      66 | test('sidebar: Clientes → /clients/', async ({ page }) => {
+      67 |   await clickSidebarLink(page, '/clients/');
+    > 68 |   await expect(page).toHaveURL(/\/clients/);
+         |                      ^
+      69 |   await assertNoPageError(page);
+      70 | });
+      71 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:68:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Clientes-→-clients--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Clientes-→-clients--superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/clients/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      66 | test('sidebar: Clientes → /clients/', async ({ page }) => {
+      67 |   await clickSidebarLink(page, '/clients/');
+    > 68 |   await expect(page).toHaveURL(/\/clients/);
+         |                      ^
+      69 |   await assertNoPageError(page);
+      70 | });
+      71 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:68:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Clientes-→-clients--superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Clientes-→-clients--superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Clientes-→-clients--superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-nav-sidebar-Clientes-→-clients--superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[58/99] [superadmin] › tests/qa-nav.spec.ts:96:5 › BUG-09: breadcrumb "Proyectos" en /lists/[id] apunta a /lists/ en vez de /projects/
+[1A[2K[59/99] [superadmin] › tests/qa-nav.spec.ts:77:5 › sidebar: Equipo → /team/ (via icon bar) (retry #1)
+[1A[2K[60/99] [superadmin] › tests/qa-nav.spec.ts:107:5 › breadcrumb: Breadcrumbs component muestra home icon
+[1A[2K[61/99] [superadmin] › tests/qa-nav.spec.ts:115:5 › breadcrumb: Home icon en /lists/[id] navega a /dashboard
+[1A[2K[62/99] [superadmin] › tests/qa-nav.spec.ts:96:5 › BUG-09: breadcrumb "Proyectos" en /lists/[id] apunta a /lists/ en vez de /projects/ (retry #1)
+[1A[2K  10) [superadmin] › tests/qa-nav.spec.ts:77:5 › sidebar: Equipo → /team/ (via icon bar) ───────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/team/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      81 |   await link.waitFor({ state: 'visible', timeout: 15_000 });
+      82 |   await link.click();
+    > 83 |   await expect(page).toHaveURL(/\/team/);
+         |                      ^
+      84 |   await assertNoPageError(page);
+      85 | });
+      86 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:83:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Equipo-→-team-via-icon-bar--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Equipo-→-team-via-icon-bar--superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/team/[39m
+    Received string:  [31m"http://localhost:3000/dashboard/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/dashboard/"[22m
+
+
+      81 |   await link.waitFor({ state: 'visible', timeout: 15_000 });
+      82 |   await link.click();
+    > 83 |   await expect(page).toHaveURL(/\/team/);
+         |                      ^
+      84 |   await assertNoPageError(page);
+      85 | });
+      86 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:83:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Equipo-→-team-via-icon-bar--superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-sidebar-Equipo-→-team-via-icon-bar--superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-nav-sidebar-Equipo-→-team-via-icon-bar--superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-nav-sidebar-Equipo-→-team-via-icon-bar--superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[63/99] [superadmin] › tests/qa-nav.spec.ts:135:7 › ruta directa /dashboard/ → no 404
+[1A[2K[64/99] [superadmin] › tests/qa-nav.spec.ts:135:7 › ruta directa /projects/ → no 404
+[1A[2K[65/99] [superadmin] › tests/qa-nav.spec.ts:115:5 › breadcrumb: Home icon en /lists/[id] navega a /dashboard (retry #1)
+[1A[2K[66/99] [superadmin] › tests/qa-nav.spec.ts:135:7 › ruta directa /clients/ → no 404
+[1A[2K  11) [superadmin] › tests/qa-nav.spec.ts:96:5 › BUG-09: breadcrumb "Proyectos" en /lists/[id] apunta a /lists/ en vez de /projects/ 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      30 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      31 |   await page.locator('.divide-y > div').first().click();
+    > 32 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      33 | }
+      34 |
+      35 | /**
+        at goToFirstListViaProjects (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:32:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:97:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-BUG-09-breadcrumb-P-b0152-a-lists-en-vez-de-projects--superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-BUG-09-breadcrumb-P-b0152-a-lists-en-vez-de-projects--superadmin/error-context.md
+
+
+[1A[2K[67/99] [superadmin] › tests/qa-nav.spec.ts:135:7 › ruta directa /team/ → no 404
+[1A[2K[68/99] [superadmin] › tests/qa-nav.spec.ts:135:7 › ruta directa /inbox/ → no 404
+[1A[2K[69/99] [superadmin] › tests/qa-nav.spec.ts:145:5 › /lists/ sin ID → no muestra error Next.js desnudo
+[1A[2K[70/99] [superadmin] › tests/qa-nav.spec.ts:158:5 › clients: click en tarjeta navega a /clients/[id]
+[1A[2K[71/99] [superadmin] › tests/qa-nav.spec.ts:166:5 › lists: después de navegar a lista, sidebar links siguen visibles
+[1A[2K  12) [superadmin] › tests/qa-nav.spec.ts:115:5 › breadcrumb: Home icon en /lists/[id] navega a /dashboard 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/dashboard/[39m
+    Received string:  [31m"http://localhost:3000/lists/list-afp-planvital-creatividad-0/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://localhost:3000/lists/list-afp-planvital-creatividad-0/"[22m
+
+
+      118 |   await expect(homeLink).toBeVisible({ timeout: 5_000 });
+      119 |   await homeLink.click();
+    > 120 |   await expect(page).toHaveURL(/\/dashboard/);
+          |                      ^
+      121 |   await assertNoPageError(page);
+      122 | });
+      123 |
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:120:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-breadcrumb-Home-icon-en-lists-id-navega-a-dashboard-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-breadcrumb-Home-icon-en-lists-id-navega-a-dashboard-superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      30 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      31 |   await page.locator('.divide-y > div').first().click();
+    > 32 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      33 | }
+      34 |
+      35 | /**
+        at goToFirstListViaProjects (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:32:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:116:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-breadcrumb-Home-icon-en-lists-id-navega-a-dashboard-superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-breadcrumb-Home-icon-en-lists-id-navega-a-dashboard-superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-nav-breadcrumb-Home-icon-en-lists-id-navega-a-dashboard-superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-nav-breadcrumb-Home-icon-en-lists-id-navega-a-dashboard-superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[72/99] [superadmin] › tests/qa-permissions.spec.ts:11:9 › TC-01 — Super Admin: dropdown de rol editable y persiste › dropdown de rol existe y es editable
+[1A[2K[73/99] [superadmin] › tests/qa-permissions.spec.ts:110:9 › TC-02 — Admin área: banner solo lectura en área restringida › banner ámbar visible y botones ocultos en espacio restringido
+[1A[2K[74/99] [superadmin] › tests/qa-permissions.spec.ts:11:9 › TC-01 — Super Admin: dropdown de rol editable y persiste › dropdown de rol existe y es editable (retry #1)
+[1A[2K[75/99] [superadmin] › tests/qa-nav.spec.ts:166:5 › lists: después de navegar a lista, sidebar links siguen visibles (retry #1)
+[1A[2K[superadmin] › tests/qa-permissions.spec.ts:110:9 › TC-02 — Admin área: banner solo lectura en área restringida › banner ámbar visible y botones ocultos en espacio restringido
+TC-02: Found 4 list URLs from AFP PlanVital
+
+[1A[2KTC-02: PASS — restricted banner at http://localhost:3000/lists/list-afp-planvital-estrategia-0/
+
+[1A[2K[76/99] [superadmin] › tests/qa-permissions.spec.ts:157:9 › TC-03 — Admin área: acceso completo en área propia › sin banner y botones visibles en espacio de área propia
+[1A[2K[superadmin] › tests/qa-permissions.spec.ts:11:9 › TC-01 — Super Admin: dropdown de rol editable y persiste › dropdown de rol existe y es editable
+API PATCH /api/team/ → status=0 body=
+
+[1A[2K  13) [superadmin] › tests/qa-permissions.spec.ts:11:9 › TC-01 — Super Admin: dropdown de rol editable y persiste › dropdown de rol existe y es editable 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('select').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('select').first()[22m
+
+
+      23 |         // ASSERT: card "Rol y Tipo" has editable select
+      24 |         const roleSelect = page.locator('select').first();
+    > 25 |         await expect(roleSelect).toBeVisible();
+         |                                  ^
+      26 |         await expect(roleSelect).not.toBeDisabled();
+      27 |
+      28 |         // Read current value
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-permissions.spec.ts:25:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-permissions-TC-01-—-Sup-61cf3-de-rol-existe-y-es-editable-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-permissions-TC-01-—-Sup-61cf3-de-rol-existe-y-es-editable-superadmin/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: API PATCH falló (0): 
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m200[39m
+    Received: [31m0[39m
+
+      52 |
+      53 |         // Only assert persistence if API call succeeded
+    > 54 |         expect(apiStatus, `API PATCH falló (${apiStatus}): ${apiBody}`).toBe(200);
+         |                                                                         ^
+      55 |
+      56 |         // Reload and verify persistence
+      57 |         await page.reload();
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-permissions.spec.ts:54:73
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-permissions-TC-01-—-Sup-61cf3-de-rol-existe-y-es-editable-superadmin-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-permissions-TC-01-—-Sup-61cf3-de-rol-existe-y-es-editable-superadmin-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-permissions-TC-01-—-Sup-61cf3-de-rol-existe-y-es-editable-superadmin-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/qa-permissions-TC-01-—-Sup-61cf3-de-rol-existe-y-es-editable-superadmin-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[77/99] [superadmin] › tests/qa-projects.spec.ts:29:5 › projects: página carga sin error
+[1A[2K  14) [superadmin] › tests/qa-nav.spec.ts:166:5 › lists: después de navegar a lista, sidebar links siguen visibles 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      30 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      31 |   await page.locator('.divide-y > div').first().click();
+    > 32 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      33 | }
+      34 |
+      35 | /**
+        at goToFirstListViaProjects (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:32:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-nav.spec.ts:167:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-nav-lists-después-de-na-ab222-debar-links-siguen-visibles-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-nav-lists-después-de-na-ab222-debar-links-siguen-visibles-superadmin/error-context.md
+
+
+[1A[2K[78/99] [superadmin] › tests/qa-projects.spec.ts:36:5 › projects: muestra lista de proyectos con columnas correctas
+[1A[2K[superadmin] › tests/qa-permissions.spec.ts:157:9 › TC-03 — Admin área: acceso completo en área propia › sin banner y botones visibles en espacio de área propia
+TC-03: Found 2 list URLs from AFP PlanVital Diseño/Producción
+
+[1A[2K[79/99] [superadmin] › tests/qa-projects.spec.ts:44:5 › projects: hay al menos 1 proyecto en la lista
+[1A[2K[80/99] [superadmin] › tests/qa-projects.spec.ts:55:5 › projects: búsqueda filtra resultados
+[1A[2KTC-03: PASS — full access at http://localhost:3000/lists/list-abc-diseno-0/
+
+[1A[2K[81/99] [superadmin] › tests/qa-projects.spec.ts:66:5 › projects: búsqueda sin resultados muestra estado vacío
+[1A[2K[82/99] [superadmin] › tests/qa-projects.spec.ts:77:5 › projects: filtro por Espacio reduce resultados
+[1A[2K[83/99] [superadmin] › tests/qa-projects.spec.ts:92:5 › projects: click en proyecto navega a /lists/[id]
+[1A[2K[84/99] [superadmin] › tests/qa-projects.spec.ts:100:5 › projects: toggle vista lista/grid funciona
+[1A[2K[85/99] [superadmin] › tests/qa-projects.spec.ts:113:5 › projects: botón Nuevo Proyecto abre modal
+[1A[2K[86/99] [superadmin] › tests/qa-projects.spec.ts:120:5 › projects: crear proyecto con datos válidos
+[1A[2K[87/99] [superadmin] › tests/qa-projects.spec.ts:141:7 › projects como miembro › miembro: puede ver lista de proyectos
+[1A[2K[88/99] [superadmin] › tests/qa-projects.spec.ts:148:7 › projects como miembro › miembro: botón Nuevo Proyecto visible (UI no restringe por rol)
+[1A[2K[89/99] [superadmin] › tests/qa-tasks.spec.ts:26:5 › tasks: crear tarea con título muestra tarea en lista
+[1A[2K[90/99] [superadmin] › tests/qa-tasks.spec.ts:51:5 › tasks: crear tarea sin título muestra error de validación
+[1A[2K[91/99] [superadmin] › tests/qa-tasks.spec.ts:71:5 › tasks: cambiar estado de tarea actualiza UI
+[1A[2K[92/99] [superadmin] › tests/qa-tasks.spec.ts:91:5 › tasks: click en tarea abre panel de detalle
+[1A[2K[93/99] [superadmin] › tests/qa-tasks.spec.ts:106:5 › tasks: panel de detalle permite asignar usuario
+[1A[2K[94/99] [superadmin] › tests/qa-tasks.spec.ts:129:5 › inbox: carga con notificaciones
+[1A[2K[95/99] [superadmin] › tests/qa-tasks.spec.ts:154:5 › inbox: filtro "Todas" muestra notificaciones
+[1A[2K[96/99] [superadmin] › tests/qa-tasks.spec.ts:106:5 › tasks: panel de detalle permite asignar usuario (retry #1)
+[1A[2K[97/99] [superadmin] › tests/qa-tasks.spec.ts:91:5 › tasks: click en tarea abre panel de detalle (retry #1)
+[1A[2K[98/99] [superadmin] › tests/qa-tasks.spec.ts:163:5 › inbox: "Marcar todas leídas" vacía el filtro No leídas
+[1A[2K[99/99] [superadmin] › tests/qa-tasks.spec.ts:180:5 › inbox: notificaciones tienen distintos tipos
+[1A[2K[100/99] (retries) [superadmin] › tests/qa-tasks.spec.ts:187:5 › inbox: badge "UNASSIGNED" debe estar en español
+[1A[2K[101/99] (retries) [superadmin] › tests/qa-tasks.spec.ts:199:7 › tasks como miembro › miembro: ve sus notificaciones en inbox
+[1A[2K  15) [superadmin] › tests/qa-tasks.spec.ts:91:5 › tasks: click en tarea abre panel de detalle ─────
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      17 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      18 |   await page.locator('.divide-y > div').first().click();
+    > 19 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      20 |   // Wait for area permissions to resolve — "Nueva Tarea" only shows once canEditByArea=true
+      21 |   await page.waitForSelector('button:has-text("Nueva Tarea")', { timeout: 15_000 });
+      22 | }
+        at goToListWithTasks (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-tasks.spec.ts:19:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-tasks.spec.ts:92:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-tasks-tasks-click-en-tarea-abre-panel-de-detalle-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-tasks-tasks-click-en-tarea-abre-panel-de-detalle-superadmin/error-context.md
+
+
+[1A[2K[102/99] (retries) [superadmin] › tests/qa-tasks.spec.ts:206:7 › tasks como miembro › miembro: puede navegar a una lista
+[1A[2K  16) [superadmin] › tests/qa-tasks.spec.ts:106:5 › tasks: panel de detalle permite asignar usuario 
+
+    TimeoutError: page.waitForURL: Timeout 20000ms exceeded.
+    =========================== logs ===========================
+      "domcontentloaded" event fired
+    ============================================================
+
+      17 |   await page.waitForSelector('.divide-y > div', { timeout: 20_000 });
+      18 |   await page.locator('.divide-y > div').first().click();
+    > 19 |   await page.waitForURL(/\/lists\//, { timeout: 20_000 });
+         |              ^
+      20 |   // Wait for area permissions to resolve — "Nueva Tarea" only shows once canEditByArea=true
+      21 |   await page.waitForSelector('button:has-text("Nueva Tarea")', { timeout: 15_000 });
+      22 | }
+        at goToListWithTasks (/Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-tasks.spec.ts:19:14)
+        at /Users/eibarr01/Library/CloudStorage/OneDrive-dentsu/Documentos/DC Flow/dc-flow-app/tests/qa-tasks.spec.ts:107:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/qa-tasks-tasks-panel-de-detalle-permite-asignar-usuario-superadmin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/qa-tasks-tasks-panel-de-detalle-permite-asignar-usuario-superadmin/error-context.md
+
+
+[1A[2K[103/99] (retries) [superadmin] › tests/qa-team.spec.ts:17:5 › team: página /team/ carga correctamente
+[1A[2K[104/99] (retries) [superadmin] › tests/qa-team.spec.ts:24:5 › team: muestra miembros con datos completos
+[1A[2K[105/99] (retries) [superadmin] › tests/qa-team.spec.ts:34:5 › BUG-08: búsqueda sin filtro departamento debe filtrar
+[1A[2K[106/99] (retries) [superadmin] › tests/qa-team.spec.ts:46:5 › team: búsqueda por nombre inexistente muestra estado vacío
+[1A[2K[107/99] (retries) [superadmin] › tests/qa-team.spec.ts:55:5 › team: búsqueda es case-insensitive
+[1A[2K[108/99] (retries) [superadmin] › tests/qa-team.spec.ts:71:5 › team: filtro por departamento filtra correctamente
+[1A[2K[109/99] (retries) [superadmin] › tests/qa-team.spec.ts:85:5 › team: limpiar filtros restaura lista completa
+[1A[2K[110/99] (retries) [superadmin] › tests/qa-team.spec.ts:104:5 › team: búsqueda y filtro departamento se combinan correctamente
+[1A[2K[111/99] (retries) [superadmin] › tests/qa-team.spec.ts:124:5 › team: toggle vista lista muestra columnas
+[1A[2K[112/99] (retries) [superadmin] › tests/qa-team.spec.ts:140:5 › team: modal Añadir Miembro abre
+[1A[2K[113/99] (retries) [superadmin] › tests/qa-team.spec.ts:147:5 › team: modal Añadir Miembro tiene etiquetas en español
+[1A[2K[114/99] (retries) [superadmin] › tests/qa-team.spec.ts:158:5 › team: modal Añadir Miembro cierra con Escape
+[1A[2K[115/99] (retries) [superadmin] › tests/qa-team.spec.ts:169:5 › team: link Carga de Trabajo navega sin 404
+[1A[2K  8 failed
+    [superadmin] › tests/qa-lists.spec.ts:28:5 › lists: página carga con contenido (no skeleton infinito) 
+    [superadmin] › tests/qa-lists.spec.ts:37:5 › lists: muestra nombre del proyecto en header ──────
+    [superadmin] › tests/qa-nav.spec.ts:49:5 › sidebar: Bandeja de entrada → /inbox/ ───────────────
+    [superadmin] › tests/qa-nav.spec.ts:60:5 › sidebar: Proyectos → /projects/ ─────────────────────
+    [superadmin] › tests/qa-nav.spec.ts:66:5 › sidebar: Clientes → /clients/ ───────────────────────
+    [superadmin] › tests/qa-nav.spec.ts:77:5 › sidebar: Equipo → /team/ (via icon bar) ─────────────
+    [superadmin] › tests/qa-nav.spec.ts:115:5 › breadcrumb: Home icon en /lists/[id] navega a /dashboard 
+    [superadmin] › tests/qa-permissions.spec.ts:11:9 › TC-01 — Super Admin: dropdown de rol editable y persiste › dropdown de rol existe y es editable 
+  8 flaky
+    [superadmin] › tests/qa-clients.spec.ts:116:5 › clients: crear cliente con nombre válido ───────
+    [superadmin] › tests/qa-clients.spec.ts:146:5 › clients: click en tarjeta navega a /clients/[id] (BUG-05 regresión) 
+    [superadmin] › tests/qa-clients.spec.ts:160:5 › clients: página de detalle muestra header con nombre 
+    [superadmin] › tests/qa-lists.spec.ts:81:5 › lists: vista lista por defecto muestra tareas agrupadas por estado 
+    [superadmin] › tests/qa-nav.spec.ts:96:5 › BUG-09: breadcrumb "Proyectos" en /lists/[id] apunta a /lists/ en vez de /projects/ 
+    [superadmin] › tests/qa-nav.spec.ts:166:5 › lists: después de navegar a lista, sidebar links siguen visibles 
+    [superadmin] › tests/qa-tasks.spec.ts:91:5 › tasks: click en tarea abre panel de detalle ───────
+    [superadmin] › tests/qa-tasks.spec.ts:106:5 › tasks: panel de detalle permite asignar usuario ──
+  1 skipped
+  82 passed (19.4m)
+
+[36m  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.[39m
