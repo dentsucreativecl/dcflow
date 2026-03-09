@@ -43,31 +43,26 @@ export function FileUploadZone({ taskId, onUploadComplete }: FileUploadZoneProps
         try {
             for (const file of acceptedFiles) {
                 // Upload to Supabase Storage
-                const fileExt = file.name.split(".").pop();
                 const fileName = `${taskId}/${Date.now()}-${file.name}`;
 
-                let uploadData = null;
-                try {
-                    const result = await supabase.storage
-                        .from("attachments")
-                        .upload(fileName, file);
-                    if (result.error) {
-                        console.warn("Storage upload skipped:", result.error.message);
-                    } else {
-                        uploadData = result.data;
-                    }
-                } catch (storageErr) {
-                    console.warn("Storage not configured, saving reference only");
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from("attachments")
+                    .upload(fileName, file);
+
+                if (uploadError) {
+                    console.error("Storage upload failed:", uploadError.message);
+                    setError(`Error al subir "${file.name}": ${uploadError.message}`);
+                    continue;
                 }
 
                 // Get public URL
-                const fileUrl = uploadData
-                    ? supabase.storage.from("attachments").getPublicUrl(uploadData.path).data.publicUrl
-                    : `/uploads/${fileName}`;
+                const fileUrl = supabase.storage
+                    .from("attachments")
+                    .getPublicUrl(uploadData.path).data.publicUrl;
 
                 // Save attachment record in database
                 const attachId = crypto.randomUUID();
-            const { error: dbError } = await supabase.from("Attachment").insert({
+                const { error: dbError } = await supabase.from("Attachment").insert({
                 id: attachId,
                     taskId,
                     fileName: file.name,
