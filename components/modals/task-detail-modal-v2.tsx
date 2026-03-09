@@ -1038,7 +1038,7 @@ export function TaskDetailModalV2() {
         try {
             const { data, error } = await supabase
                 .from("Checklist")
-                .insert({ name: newChecklistName.trim(), taskId: task.id, order: task.checklists.length })
+                .insert({ id: crypto.randomUUID(), name: newChecklistName.trim(), taskId: task.id, order: task.checklists.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
                 .select("id")
                 .single();
             if (error) throw error;
@@ -1098,7 +1098,7 @@ export function TaskDetailModalV2() {
         try {
             const { data, error } = await supabase
                 .from("ChecklistItem")
-                .insert({ content: newItemContent.trim(), checklistId, order: checklist?.items.length || 0, isCompleted: false })
+                .insert({ id: crypto.randomUUID(), content: newItemContent.trim(), checklistId, order: checklist?.items.length || 0, isCompleted: false, createdAt: new Date().toISOString() })
                 .select("id")
                 .single();
             if (error) throw error;
