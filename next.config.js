@@ -3,13 +3,13 @@ const nextConfig = {
   trailingSlash: true,
   images: {
     domains: ['images.unsplash.com', 'api.dicebear.com'],
-    unoptimized: true,
+    unoptimized: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   experimental: {
     serverComponentsExternalPackages: [

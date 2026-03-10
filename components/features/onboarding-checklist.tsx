@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, X, Rocket } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CheckCircle2, Circle, ChevronDown, X, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/auth-context";
+import { log } from "@/lib/logger";
 
 const ONBOARDING_STEPS = [
   { id: "profile", title: "Configura tu perfil", desc: "Ajusta tu nombre, foto y preferencias" },
@@ -13,39 +16,70 @@ const ONBOARDING_STEPS = [
   { id: "time", title: "Registra tu primer tiempo", desc: "Usa el timer para trackear tus horas" },
 ];
 
-const STORAGE_KEY = "dcflow-onboarding";
+interface OnboardingData {
+  completed: string[];
+  dismissed: boolean;
+}
 
 export function OnboardingChecklist() {
+  const { user } = useAuth();
   const [completed, setCompleted] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
+  // Load from Supabase
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.completed) setCompleted(data.completed);
-        if (data.dismissed) setDismissed(true);
-      }
-    } catch {}
-  }, []);
+    if (!user?.id) return;
+    const supabase = createClient();
+    supabase
+      .from("User")
+      .select("onboardingProgress")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        const progress = data?.onboardingProgress as OnboardingData | null;
+        if (progress) {
+          if (progress.completed) setCompleted(progress.completed);
+          if (progress.dismissed) setDismissed(true);
+        }
+        setLoaded(true);
+      });
+  }, [user?.id]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ completed, dismissed }));
-  }, [completed, dismissed]);
+  // Save to Supabase
+  const persist = useCallback(
+    (newCompleted: string[], newDismissed: boolean) => {
+      if (!user?.id) return;
+      const supabase = createClient();
+      supabase
+        .from("User")
+        .update({ onboardingProgress: { completed: newCompleted, dismissed: newDismissed } })
+        .eq("id", user.id)
+        .then(({ error }) => {
+          if (error) log.error("Error saving onboarding progress:", error.message);
+        });
+    },
+    [user?.id]
+  );
 
   const toggleStep = (id: string) => {
-    setCompleted(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    );
+    const next = completed.includes(id)
+      ? completed.filter((s) => s !== id)
+      : [...completed, id];
+    setCompleted(next);
+    persist(next, dismissed);
+  };
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    persist(completed, true);
   };
 
   const progress = Math.round((completed.length / ONBOARDING_STEPS.length) * 100);
   const allDone = completed.length === ONBOARDING_STEPS.length;
 
-  if (dismissed && allDone) return null;
-  if (dismissed) return null;
+  if (!loaded || dismissed) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-40 w-80">
@@ -75,7 +109,7 @@ export function OnboardingChecklist() {
               <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/20 rounded">
                 <ChevronDown className="h-4 w-4" />
               </button>
-              <button onClick={() => setDismissed(true)} className="p-1 hover:bg-white/20 rounded">
+              <button onClick={handleDismiss} className="p-1 hover:bg-white/20 rounded">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -114,7 +148,7 @@ export function OnboardingChecklist() {
           {allDone && (
             <div className="p-4 text-center border-t">
               <p className="text-sm font-medium text-studio-success">¡Excelente! Has completado todos los pasos.</p>
-              <button onClick={() => setDismissed(true)} className="text-xs text-muted-foreground hover:underline mt-1">Cerrar guía</button>
+              <button onClick={handleDismiss} className="text-xs text-muted-foreground hover:underline mt-1">Cerrar guía</button>
             </div>
           )}
         </div>

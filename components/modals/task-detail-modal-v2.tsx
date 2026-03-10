@@ -64,6 +64,7 @@ import {
     Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { log } from "@/lib/logger";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/components/ui/toast";
@@ -445,7 +446,7 @@ export function TaskDetailModalV2() {
                 setDescriptionValue(processedTask.description || "");
             } catch (error) {
                 const supaErr = error as { code?: string; message?: string; details?: string };
-                console.error("Error fetching task:", {
+                log.error("Error fetching task:", {
                     code: supaErr?.code,
                     message: supaErr?.message,
                     details: supaErr?.details,
@@ -586,7 +587,7 @@ export function TaskDetailModalV2() {
             addToast({ title: "Subtarea creada", type: "success" });
         } catch (error) {
             const supaErr = error as { code?: string; message?: string };
-            console.error("Error creating subtask:", { code: supaErr?.code, message: supaErr?.message, raw: error });
+            log.error("Error creating subtask:", { code: supaErr?.code, message: supaErr?.message, raw: error });
             addToast({ title: "Error al crear subtarea", description: supaErr?.message, type: "error" });
         }
     };
@@ -751,7 +752,7 @@ export function TaskDetailModalV2() {
                 }).then(() => reloadActivities(task.id));
             }
         } catch (error) {
-            console.error("Error updating title:", error);
+            log.error("Error updating title:", error);
         } finally {
             setSaving(false);
         }
@@ -783,7 +784,7 @@ export function TaskDetailModalV2() {
                 }).then(() => reloadActivities(task.id));
             }
         } catch (error) {
-            console.error("Error updating description:", error);
+            log.error("Error updating description:", error);
         } finally {
             setSaving(false);
         }
@@ -850,7 +851,7 @@ export function TaskDetailModalV2() {
                 }
             }
         } catch (error) {
-            console.error("Error updating status:", error);
+            log.error("Error updating status:", error);
         }
     };
 
@@ -900,7 +901,7 @@ export function TaskDetailModalV2() {
                 });
             }
         } catch (error) {
-            console.error("Error updating priority:", error);
+            log.error("Error updating priority:", error);
         }
     };
 
@@ -950,7 +951,7 @@ export function TaskDetailModalV2() {
                 });
             }
         } catch (error) {
-            console.error("Error updating due date:", error);
+            log.error("Error updating due date:", error);
         }
     };
 
@@ -991,7 +992,7 @@ export function TaskDetailModalV2() {
                 actorName: user.name || "Usuario",
             });
         } catch (error) {
-            console.error("Error adding comment:", error);
+            log.error("Error adding comment:", error);
         }
     };
 
@@ -1024,7 +1025,7 @@ export function TaskDetailModalV2() {
                 ),
             });
         } catch (error) {
-            console.error("Error toggling checklist item:", error);
+            log.error("Error toggling checklist item:", error);
         }
     };
 
@@ -1217,7 +1218,7 @@ export function TaskDetailModalV2() {
                 newValue: userName,
                 createdAt: new Date().toISOString(),
             }).then(({ error: actError }) => {
-                if (actError) console.warn("Activity log failed:", actError.message);
+                if (actError) log.warn("Activity log failed:", actError.message);
                 else reloadActivities(task.id);
             });
 
@@ -1234,7 +1235,7 @@ export function TaskDetailModalV2() {
             setAssignSearch("");
         } catch (error) {
             const supaErr = error as { code?: string; message?: string };
-            console.error("Error assigning user:", { code: supaErr?.code, message: supaErr?.message });
+            log.error("Error assigning user:", { code: supaErr?.code, message: supaErr?.message });
             addToast({ title: "Error al asignar usuario", description: supaErr?.message, type: "error" });
         }
     };
@@ -1278,7 +1279,12 @@ export function TaskDetailModalV2() {
                                         </Button>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
+                                        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => {
+                                            const url = `${window.location.origin}/tasks?taskId=${task.id}`;
+                                            navigator.clipboard.writeText(url).then(() => {
+                                                addToast({ title: "Link copiado al portapapeles", type: "success" });
+                                            });
+                                        }}>
                                             <Share2 className="h-3.5 w-3.5" /> Compartir
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleClose}>

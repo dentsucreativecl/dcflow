@@ -178,6 +178,8 @@ model User {
   channelMembers       ChannelMember[]
   messages             Message[]
 
+  onboardingProgress   Json?     // { completed: string[], dismissed: boolean }
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
