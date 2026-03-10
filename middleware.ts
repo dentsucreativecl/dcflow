@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     const isPublicRoute = publicRoutes.some(route =>
-        request.nextUrl.pathname.startsWith(route)
+        request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + '/')
     )
 
     // Redirect unauthenticated users to login

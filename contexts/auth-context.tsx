@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Role types matching Prisma schema
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
@@ -46,7 +46,6 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     setUser: (user: User | null) => void;
-    setRole: (role: Role) => void;
     login: (email: string, password: string) => Promise<{ error?: string }>;
     logout: () => void;
     hasPermission: (permission: Permission) => boolean;
@@ -161,10 +160,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const initAuth = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { user: authUser } } = await supabase.auth.getUser();
 
-                if (session?.user) {
-                    const profile = await fetchProfile(session.user.id);
+                if (authUser) {
+                    const profile = await fetchProfile(authUser.id);
                     setUser(profile);
                 }
             } catch (error) {
@@ -228,12 +227,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
     };
 
-    // Set role (kept for backwards compatibility - does NOT change DB role)
-    const setRole = (role: Role) => {
-        if (!user) return;
-        setUser({ ...user, role });
-    };
-
     // Check permission
     const hasPermission = (permission: Permission): boolean => {
         if (!user) return false;
@@ -264,7 +257,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         setUser,
-        setRole,
         login,
         logout,
         hasPermission,

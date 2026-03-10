@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
 
 interface StatCardProps {
   title: string;
@@ -67,6 +68,8 @@ interface MonthlyHours {
 type ReportTab = "overview" | "projects" | "team" | "time";
 
 export default function ReportsPage() {
+  const { user: authUser, isAdmin, isSuperAdmin } = useAuth();
+  const isFullAccess = isAdmin || isSuperAdmin;
   const [activeTab, setActiveTab] = useState<ReportTab>("overview");
   const [loading, setLoading] = useState(true);
 
@@ -84,24 +87,50 @@ export default function ReportsPage() {
   useEffect(() => {
     async function fetchReportData() {
       const supabase = createClient();
+      const currentUserId = authUser?.id;
 
-      // Fetch all time entries
-      const { data: timeEntries } = await supabase
+      // --- Permission-scoped queries ---
+      // MEMBER: only own time entries; ADMIN/SUPER_ADMIN: all
+      let timeEntriesQuery = supabase
         .from("TimeEntry")
         .select("id, hours, userId, date");
+      if (!isFullAccess && currentUserId) {
+        timeEntriesQuery = timeEntriesQuery.eq("userId", currentUserId);
+      }
+      const { data: timeEntries } = await timeEntriesQuery;
 
-      // Fetch all tasks with status
-      const { data: tasks } = await supabase
+      // MEMBER: only tasks assigned to them; ADMIN: all
+      let tasksQuery = supabase
         .from("Task")
         .select("id, listId, Status(type)")
         .is("parentId", null);
 
-      // Fetch active members
-      const { data: members } = await supabase
+      // For members, get their assigned task IDs first
+      let memberTaskIds: string[] | null = null;
+      if (!isFullAccess && currentUserId) {
+        const { data: myAssignments } = await supabase
+          .from("TaskAssignment")
+          .select("taskId")
+          .eq("userId", currentUserId);
+        memberTaskIds = (myAssignments || []).map((a: { taskId: string }) => a.taskId);
+        if (memberTaskIds.length > 0) {
+          tasksQuery = tasksQuery.in("id", memberTaskIds);
+        } else {
+          tasksQuery = tasksQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // no results
+        }
+      }
+      const { data: tasks } = await tasksQuery;
+
+      // MEMBER sees only themselves; ADMIN sees all
+      let membersQuery = supabase
         .from("User")
         .select("id, name, weeklyCapacity")
         .eq("userType", "MEMBER")
         .eq("isActive", true);
+      if (!isFullAccess && currentUserId) {
+        membersQuery = membersQuery.eq("id", currentUserId);
+      }
+      const { data: members } = await membersQuery;
 
       // Fetch lists with spaces
       const { data: lists } = await supabase
@@ -222,7 +251,8 @@ export default function ReportsPage() {
     }
 
     fetchReportData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id, isFullAccess]);
 
   const handleExport = () => {
     const data = JSON.stringify({
