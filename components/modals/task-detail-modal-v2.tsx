@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -62,6 +62,8 @@ import {
     File,
     Link2,
     Lock,
+    Loader2,
+    Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/logger";
@@ -145,9 +147,17 @@ interface TaskData {
     customFields?: CustomFieldWithValue[];
 }
 
+interface CommentAttachment {
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+}
+
 interface Comment {
     id: string;
     content: string;
+    attachments: CommentAttachment[] | null;
     createdAt: string;
     user: {
         id: string;
@@ -189,6 +199,8 @@ export function TaskDetailModalV2() {
     const [titleValue, setTitleValue] = useState("");
     const [descriptionValue, setDescriptionValue] = useState("");
     const [newComment, setNewComment] = useState("");
+    const [commentAttachment, setCommentAttachment] = useState<File | null>(null);
+    const commentFileRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState("details");
     const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; name: string; avatarUrl: string | null }>>([]);
     const [assignOpen, setAssignOpen] = useState(false);
@@ -332,7 +344,7 @@ export function TaskDetailModalV2() {
                 // Fetch comments
                 const { data: commentsData } = await supabase
                     .from("Comment")
-                    .select("id, content, createdAt, user:User(id, name, avatarUrl)")
+                    .select("id, content, attachments, createdAt, user:User(id, name, avatarUrl)")
                     .eq("taskId", taskId)
                     .order("createdAt", { ascending: false });
 
@@ -956,21 +968,51 @@ export function TaskDetailModalV2() {
     };
 
     const handleAddComment = async () => {
-        if (!task || !newComment.trim() || !user) return;
+        if (!task || (!newComment.trim() && !commentAttachment) || !user) return;
 
         const supabase = createClient();
 
         try {
+            let attachments: CommentAttachment[] | null = null;
+
+            // Upload attachment if present
+            if (commentAttachment) {
+                const ext = commentAttachment.name.split(".").pop() || "bin";
+                const filePath = `task-comments/${task.id}/${crypto.randomUUID()}.${ext}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from("attachments")
+                    .upload(filePath, commentAttachment, { contentType: commentAttachment.type });
+
+                if (uploadError) {
+                    log.error("Error uploading comment attachment:", uploadError.message);
+                } else {
+                    const { data: urlData } = supabase.storage
+                        .from("attachments")
+                        .getPublicUrl(filePath);
+
+                    attachments = [{
+                        name: commentAttachment.name,
+                        url: urlData.publicUrl,
+                        type: commentAttachment.type,
+                        size: commentAttachment.size,
+                    }];
+                }
+            }
+
+            const content = newComment.trim() || (attachments ? `📎 ${attachments[0].name}` : "");
+
             const { data, error } = await supabase
                 .from("Comment")
                 .insert({
                     id: self.crypto.randomUUID(),
                     taskId: task.id,
                     userId: user.id,
-                    content: newComment.trim(),
+                    content,
+                    attachments: attachments || undefined,
                     updatedAt: new Date().toISOString(),
                 })
-                .select("id, content, createdAt")
+                .select("id, content, attachments, createdAt")
                 .single();
 
             if (error) throw error;
@@ -978,15 +1020,17 @@ export function TaskDetailModalV2() {
             setComments([
                 {
                     ...data,
+                    attachments: data.attachments as CommentAttachment[] | null,
                     user: { id: user.id, name: user.name, avatarUrl: user.avatar || null },
                 },
                 ...comments,
             ]);
             setNewComment("");
+            setCommentAttachment(null);
 
             // Notify mentions
             createMentionNotifications({
-                commentText: newComment.trim(),
+                commentText: content,
                 taskId: task.id,
                 actorId: user.id,
                 actorName: user.name || "Usuario",
@@ -2091,24 +2135,43 @@ export function TaskDetailModalV2() {
                                                     {user?.name?.slice(0, 2).toUpperCase() || "?"}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <div className="flex-1 flex gap-2">
-                                                <Input
-                                                    value={newComment}
-                                                    onChange={(e) => setNewComment(e.target.value)}
-                                                    placeholder="Escribe un comentario..."
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" && !e.shiftKey) {
-                                                            e.preventDefault();
-                                                            handleAddComment();
-                                                        }
-                                                    }}
+                                            <div className="flex-1">
+                                                <input
+                                                    type="file"
+                                                    ref={commentFileRef}
+                                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) setCommentAttachment(f); e.target.value = ""; }}
+                                                    className="hidden"
+                                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
                                                 />
-                                                <Button size="icon" variant="ghost" title="Adjuntar archivo">
-                                                    <Paperclip className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim()}>
-                                                    <Send className="h-4 w-4" />
-                                                </Button>
+                                                {commentAttachment && (
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg bg-accent/50 border border-border text-sm">
+                                                        {commentAttachment.type.startsWith("image/") ? <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" /> : <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                                        <span className="truncate flex-1">{commentAttachment.name}</span>
+                                                        <span className="text-xs text-muted-foreground">{(commentAttachment.size / 1024).toFixed(1)} KB</span>
+                                                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setCommentAttachment(null)}>
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        value={newComment}
+                                                        onChange={(e) => setNewComment(e.target.value)}
+                                                        placeholder="Escribe un comentario..."
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                handleAddComment();
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button size="icon" variant="ghost" title="Adjuntar archivo" onClick={() => commentFileRef.current?.click()}>
+                                                        <Paperclip className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim() && !commentAttachment}>
+                                                        <Send className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -2136,6 +2199,23 @@ export function TaskDetailModalV2() {
                                                                 </span>
                                                             </div>
                                                             <p className="text-sm mt-1">{comment.content}</p>
+                                                            {comment.attachments && comment.attachments.length > 0 && (
+                                                                <div className="mt-2 space-y-1">
+                                                                    {comment.attachments.map((att, i) =>
+                                                                        att.type.startsWith("image/") ? (
+                                                                            <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+                                                                                <img src={att.url} alt={att.name} className="max-w-[200px] max-h-40 rounded-lg border border-border object-cover" />
+                                                                            </a>
+                                                                        ) : (
+                                                                            <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 py-1 rounded bg-accent/50 border border-border text-xs hover:bg-accent transition-colors w-fit">
+                                                                                <Paperclip className="h-3 w-3 text-muted-foreground" />
+                                                                                <span className="truncate max-w-[160px]">{att.name}</span>
+                                                                                <span className="text-muted-foreground">{(att.size / 1024).toFixed(1)} KB</span>
+                                                                            </a>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))
@@ -2229,6 +2309,23 @@ export function TaskDetailModalV2() {
                                                         </p>
                                                         <div className="mt-2 p-3 bg-muted/50 rounded-lg border">
                                                             <p className="text-sm">{comment.content}</p>
+                                                            {comment.attachments && comment.attachments.length > 0 && (
+                                                                <div className="mt-2 space-y-1">
+                                                                    {comment.attachments.map((att, i) =>
+                                                                        att.type.startsWith("image/") ? (
+                                                                            <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+                                                                                <img src={att.url} alt={att.name} className="max-w-[200px] max-h-40 rounded-lg border border-border object-cover" />
+                                                                            </a>
+                                                                        ) : (
+                                                                            <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 py-1 rounded bg-accent/50 border border-border text-xs hover:bg-accent transition-colors w-fit">
+                                                                                <Paperclip className="h-3 w-3 text-muted-foreground" />
+                                                                                <span className="truncate max-w-[160px]">{att.name}</span>
+                                                                                <span className="text-muted-foreground">{(att.size / 1024).toFixed(1)} KB</span>
+                                                                            </a>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2316,6 +2413,22 @@ export function TaskDetailModalV2() {
                                                         <span className="text-[10px] text-muted-foreground">{comment.createdAt ? new Date(comment.createdAt).toLocaleDateString("es", { day: "numeric", month: "short" }) : ""}</span>
                                                     </div>
                                                     <p className="text-xs text-muted-foreground mt-0.5 break-words">{comment.content}</p>
+                                                    {comment.attachments && comment.attachments.length > 0 && (
+                                                        <div className="mt-1 space-y-1">
+                                                            {comment.attachments.map((att, i) =>
+                                                                att.type.startsWith("image/") ? (
+                                                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+                                                                        <img src={att.url} alt={att.name} className="max-w-[120px] max-h-20 rounded border border-border object-cover" />
+                                                                    </a>
+                                                                ) : (
+                                                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
+                                                                        <Paperclip className="h-3 w-3" />
+                                                                        <span className="truncate max-w-[100px]">{att.name}</span>
+                                                                    </a>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -2332,10 +2445,10 @@ export function TaskDetailModalV2() {
                                         onChange={(e) => setNewComment(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
                                     />
-                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Adjuntar archivo">
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Adjuntar archivo" onClick={() => commentFileRef.current?.click()}>
                                         <Paperclip className="h-3.5 w-3.5" />
                                     </Button>
-                                    <Button size="sm" className="h-8 px-2" onClick={handleAddComment} disabled={!newComment.trim()}>
+                                    <Button size="sm" className="h-8 px-2" onClick={handleAddComment} disabled={!newComment.trim() && !commentAttachment}>
                                         <Send className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>

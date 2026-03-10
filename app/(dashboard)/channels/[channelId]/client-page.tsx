@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Hash, Send, Smile, Paperclip, AtSign, MoreHorizontal, Users, Pin, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Hash, Send, Smile, Paperclip, AtSign, Users, Pin, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,6 +57,7 @@ export default function ChannelPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -255,6 +256,7 @@ export default function ChannelPage() {
 
   const insertEmoji = (emoji: string) => {
     setMessage((prev) => prev + emoji);
+    setEmojiOpen(false);
   };
 
   const getInitials = (name: string) =>
@@ -372,14 +374,6 @@ export default function ChannelPage() {
                   </div>
                 )}
               </div>
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-start gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <Smile className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
-              </div>
             </div>
           ))}
         </div>
@@ -433,17 +427,18 @@ export default function ChannelPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
             <AtSign className="h-4 w-4" />
           </Button>
-          <Popover>
+          <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" type="button">
                 <Smile className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2" align="end" side="top">
+            <PopoverContent className="w-auto p-2" align="end" side="top" onOpenAutoFocus={(e) => e.preventDefault()}>
               <div className="grid grid-cols-8 gap-1">
                 {EMOJI_LIST.map((emoji) => (
                   <button
                     key={emoji}
+                    type="button"
                     onClick={() => insertEmoji(emoji)}
                     className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg transition-colors"
                   >

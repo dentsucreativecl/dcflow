@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Send, Smile, Paperclip, Phone, Video, MoreHorizontal, MessageCircle, ChevronRight } from "lucide-react";
+import { Send, Smile, Paperclip, MessageCircle, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -132,17 +132,7 @@ export default function DMPage() {
             <p className="text-xs text-muted-foreground">{contact.status}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Llamar">
-            <Phone className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Videollamada">
-            <Video className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </div>
+        <div className="flex items-center gap-1" />
       </div>
 
       <ScrollArea className="flex-1 px-6 py-4">

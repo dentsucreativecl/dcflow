@@ -751,6 +751,7 @@ function TaskKanbanCard({ task, onClick, onImageClick }: TaskKanbanCardProps) {
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
     const imageAttachments = (task.attachments || []).filter(a => a.fileType?.startsWith("image/"));
     const [subtasksExpanded, setSubtasksExpanded] = useState(false);
+    const [imgError, setImgError] = useState(false);
     const { openModal } = useAppStore();
     const subtasks = task.subtasks || [];
 
@@ -764,7 +765,7 @@ function TaskKanbanCard({ task, onClick, onImageClick }: TaskKanbanCardProps) {
             )}
         >
             {/* Image Thumbnail */}
-            {imageAttachments.length > 0 && (
+            {imageAttachments.length > 0 && !imgError && (
                 <div
                     className="relative -mx-3 -mt-3 mb-2 rounded-t-lg overflow-hidden cursor-zoom-in"
                     onClick={(e) => {
@@ -779,10 +780,7 @@ function TaskKanbanCard({ task, onClick, onImageClick }: TaskKanbanCardProps) {
                         src={imageAttachments[imageAttachments.length - 1].fileUrl}
                         alt={imageAttachments[imageAttachments.length - 1].fileName}
                         className="w-full h-28 object-cover"
-                        onError={(e) => {
-                            const wrapper = e.currentTarget.closest('.relative') as HTMLElement | null;
-                            if (wrapper) wrapper.style.display = 'none';
-                        }}
+                        onError={() => setImgError(true)}
                     />
                     {imageAttachments.length > 1 && (
                         <div className="absolute top-1.5 right-1.5 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
