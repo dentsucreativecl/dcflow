@@ -14,6 +14,7 @@ import { ConfirmDeleteModal } from "./confirm-delete-modal";
 import { BulkImportModal } from "./bulk-import-modal";
 import { BulkStatusChangeModal } from "./bulk-status-change-modal";
 import { BulkAssignModal } from "./bulk-assign-modal";
+import { NewChannelModal } from "./new-channel-modal";
 import { useAppStore } from "@/lib/store";
 
 export function ModalProvider() {
@@ -34,6 +35,7 @@ export function ModalProvider() {
       <BulkImportModal />
       <BulkStatusChangeModal />
       <BulkAssignModal />
+      <NewChannelModal />
     </>
   );
 }

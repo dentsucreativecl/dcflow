@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -87,6 +87,7 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
     const [showFavorites, setShowFavorites] = useState(false);
     const { favorites } = useFavoritesStore();
     const [dmContacts, setDmContacts] = useState<Array<{ id: string; name: string }>>([]);
+    const [channels, setChannels] = useState<Array<{ id: string; name: string; slug: string }>>([]);
 
     useEffect(() => {
         async function fetchDmContacts() {
@@ -103,6 +104,27 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
         }
         fetchDmContacts();
     }, [user]);
+
+    // Fetch channels from Supabase
+    const fetchChannels = useCallback(async () => {
+        const supabase = createClient();
+        const { data } = await supabase
+            .from("Channel")
+            .select("id, name, slug")
+            .eq("isArchived", false)
+            .order("name");
+        if (data) setChannels(data);
+    }, []);
+
+    useEffect(() => {
+        fetchChannels();
+    }, [fetchChannels]);
+
+    useEffect(() => {
+        const handler = () => { fetchChannels(); };
+        window.addEventListener("dcflow:channels-refresh", handler);
+        return () => window.removeEventListener("dcflow:channels-refresh", handler);
+    }, [fetchChannels]);
 
     // Fetch spaces, folders, and lists
     useEffect(() => {
@@ -395,10 +417,31 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
                     </nav>
                     <div className="mx-3 border-b border-border my-2" />
                     <div className="px-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-2">Canales</p>
-                      <Link href="/channels/general" className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-accent", pathname === "/channels/general" && "bg-accent font-medium")}><Hash className="h-3 w-3 text-green-700" /> general</Link>
-                      <Link href="/channels/creatividad" className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-accent", pathname === "/channels/creatividad" && "bg-accent font-medium")}><Hash className="h-3 w-3 text-green-700" /> creatividad</Link>
-                      <Link href="/channels/produccion" className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-accent", pathname === "/channels/produccion" && "bg-accent font-medium")}><Hash className="h-3 w-3 text-green-700" /> produccion</Link>
+                      <div className="flex items-center justify-between mb-2 px-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Canales</p>
+                        {isAdmin && (
+                          <button
+                            onClick={() => openModal("new-channel")}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Nuevo canal"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      {channels.map((ch) => (
+                        <Link
+                          key={ch.id}
+                          href={`/channels/${ch.slug}`}
+                          className={cn(
+                            "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-accent",
+                            pathname === `/channels/${ch.slug}` && "bg-accent font-medium"
+                          )}
+                        >
+                          <Hash className="h-3 w-3 text-green-700" />
+                          {ch.name.toLowerCase()}
+                        </Link>
+                      ))}
                     </div>
                     <div className="mx-3 border-b border-border my-2" />
                     <div className="px-3 pb-4">

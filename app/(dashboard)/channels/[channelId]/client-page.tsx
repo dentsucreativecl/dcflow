@@ -1,78 +1,207 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Hash, Send, Smile, Paperclip, AtSign, MoreHorizontal, Users, Bell, Pin } from "lucide-react";
+import { Hash, Send, Smile, Paperclip, AtSign, MoreHorizontal, Users, Pin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/client";
 
-interface Message {
+interface MessageData {
   id: string;
-  user: string;
-  avatar: string;
   content: string;
-  time: string;
-  reactions?: { emoji: string; count: number }[];
-  attachment?: { name: string; size: string; type: string; url?: string };
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
 }
 
-const channelMessages: Record<string, Message[]> = {
-  general: [
-    { id: "1", user: "Rebecca Sottorff", avatar: "RS", content: "Buenos dias equipo. Recordatorio: la reunion de alineacion es a las 10am.", time: "9:15 AM", reactions: [{ emoji: "👍", count: 3 }] },
-    { id: "2", user: "Jose Rojas", avatar: "JR", content: "Perfecto, ahi estare. Alguien tiene el link de la sala?", time: "9:18 AM" },
-    { id: "3", user: "Zacha Martinez", avatar: "ZM", content: "https://meet.google.com/abc-defg-hij", time: "9:20 AM", reactions: [{ emoji: "🙏", count: 2 }] },
-    { id: "4", user: "Valentina Espinoza", avatar: "VE", content: "El cliente de Cardio Autos confirmo la reunion del viernes para revisar las propuestas.", time: "10:45 AM" },
-    { id: "5", user: "Rebecca Sottorff", avatar: "RS", content: "Excelente. Tengo 3 propuestas listas. Las subo al espacio de Creatividad.", time: "10:48 AM", reactions: [{ emoji: "🔥", count: 4 }] },
-  ],
-  creatividad: [
-    { id: "1", user: "Jose Rojas", avatar: "JR", content: "Equipo, necesito feedback sobre los moodboards del rebranding.", time: "2:00 PM", attachment: { name: "moodboard-opcion-B.png", size: "2.4 MB", type: "image", url: "https://picsum.photos/seed/moodboard/400/300" } },
-    { id: "2", user: "Zacha Martinez", avatar: "ZM", content: "Me gusta la direccion de la opcion B, tiene mas fuerza visual.", time: "2:15 PM", reactions: [{ emoji: "👍", count: 2 }] },
-    { id: "3", user: "Valentina Espinoza", avatar: "VE", content: "Coincido. La paleta de colores es mas moderna.", time: "2:22 PM" },
-  ],
-  produccion: [
-    { id: "1", user: "Rebecca Sottorff", avatar: "RS", content: "El spot de Cardio Autos necesita casting para manana. Tenemos confirmados?", time: "11:00 AM" },
-    { id: "2", user: "Jose Rojas", avatar: "JR", content: "Tengo 5 candidatos confirmados. Envio portafolio por DM.", time: "11:30 AM", attachment: { name: "casting-portafolio.pdf", size: "1.8 MB", type: "file" } },
-  ],
-};
-
-const channelInfo: Record<string, { name: string; description: string; members: number }> = {
-  general: { name: "general", description: "Canal general del equipo", members: 12 },
-  creatividad: { name: "creatividad", description: "Discusión del área creativa", members: 8 },
-  produccion: { name: "produccion", description: "Coordinación de producción", members: 6 },
-};
+interface ChannelData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
 
 export default function ChannelPage() {
   const params = useParams();
   const { user } = useAuth();
-  const rawChannelId = params.channelId as string;
-  // Get actual channelId from URL path if params return placeholder
-  const channelId = rawChannelId === '_' ? (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() || '' : '') : rawChannelId;
+  const slug = params.channelId as string;
   const [message, setMessage] = useState("");
-  const [attachment, setAttachment] = useState<File | null>(null);
+  const [messages, setMessages] = useState<MessageData[]>([]);
+  const [channel, setChannel] = useState<ChannelData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [memberCount, setMemberCount] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [messages, setMessages] = useState<Message[]>(channelMessages[channelId] || []);
-  const info = channelInfo[channelId] || { name: channelId, description: "", members: 0 };
+  const [attachment, setAttachment] = useState<File | null>(null);
 
-  const sendMessage = () => {
-    if (!message.trim() && !attachment) return;
-    const newMsg: Message = {
-      id: Date.now().toString(),
-      user: user?.name || "Usuario",
-      avatar: user?.name ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2) : "U",
-      content: attachment && !message.trim() ? "Archivo adjunto" : message,
-      time: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
-      attachment: attachment ? {
-        name: attachment.name,
-        size: (attachment.size / 1024).toFixed(1) + " KB",
-        type: attachment.type.split("/")[0] || "file",
-      } : undefined,
+  const scrollToBottom = useCallback(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, []);
+
+  // Load channel and messages
+  useEffect(() => {
+    if (!slug || slug === "_") return;
+
+    async function fetchChannel() {
+      setLoading(true);
+      const supabase = createClient();
+
+      // Fetch channel by slug
+      const { data: channelData } = await supabase
+        .from("Channel")
+        .select("id, name, slug, description")
+        .eq("slug", slug)
+        .single();
+
+      if (!channelData) {
+        setLoading(false);
+        return;
+      }
+
+      setChannel(channelData);
+
+      // Fetch member count
+      const { count } = await supabase
+        .from("ChannelMember")
+        .select("id", { count: "exact", head: true })
+        .eq("channelId", channelData.id);
+
+      if (count !== null) setMemberCount(count);
+
+      // Fetch messages
+      const { data: messagesData } = await supabase
+        .from("Message")
+        .select("id, content, createdAt, user:User(id, name, avatarUrl)")
+        .eq("channelId", channelData.id)
+        .order("createdAt", { ascending: true });
+
+      if (messagesData) {
+        setMessages(
+          messagesData.map((m: Record<string, unknown>) => ({
+            ...m,
+            user: Array.isArray(m.user) ? m.user[0] : m.user,
+          })) as MessageData[]
+        );
+      }
+
+      setLoading(false);
+      setTimeout(scrollToBottom, 100);
+    }
+
+    fetchChannel();
+  }, [slug, scrollToBottom]);
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!channel?.id) return;
+
+    const supabase = createClient();
+
+    const subscription = supabase
+      .channel("messages-" + channel.id)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "Message",
+          filter: `channelId=eq.${channel.id}`,
+        },
+        async (payload) => {
+          const newMsg = payload.new as Record<string, unknown>;
+
+          // Don't duplicate messages we already added optimistically
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+            // Fetch user info for the message
+            // For now use a placeholder; we'll enrich below
+            return [
+              ...prev,
+              {
+                id: newMsg.id as string,
+                content: newMsg.content as string,
+                createdAt: newMsg.createdAt as string,
+                user: null,
+              },
+            ];
+          });
+
+          // Enrich with user data
+          const { data: userData } = await supabase
+            .from("User")
+            .select("id, name, avatarUrl")
+            .eq("id", newMsg.userId as string)
+            .single();
+
+          if (userData) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === newMsg.id ? { ...m, user: userData } : m
+              )
+            );
+          }
+
+          setTimeout(scrollToBottom, 50);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
     };
-    setMessages([...messages, newMsg]);
+  }, [channel?.id, scrollToBottom]);
+
+  const sendMessage = async () => {
+    if (!message.trim() || !user || !channel) return;
+
+    const supabase = createClient();
+    const msgId = crypto.randomUUID();
+    const content = message.trim();
+
+    // Optimistic update
+    const optimisticMsg: MessageData = {
+      id: msgId,
+      content,
+      createdAt: new Date().toISOString(),
+      user: {
+        id: user.id,
+        name: user.name || "Usuario",
+        avatarUrl: user.avatar || null,
+      },
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
     setMessage("");
     setAttachment(null);
+    setTimeout(scrollToBottom, 50);
+
+    try {
+      const { error } = await supabase.from("Message").insert({
+        id: msgId,
+        channelId: channel.id,
+        userId: user.id,
+        content,
+        updatedAt: new Date().toISOString(),
+      });
+
+      if (error) {
+        console.error("Error sending message:", error);
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,13 +210,52 @@ export default function ChannelPage() {
     if (e.target) e.target.value = "";
   };
 
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+
+  const formatTime = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleTimeString("es", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!channel) {
+    return (
+      <div className="flex h-full items-center justify-center text-muted-foreground">
+        Canal no encontrado
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col animate-fade-in-up">
       <div className="flex items-center justify-between border-b border-border px-6 py-3">
         <div className="flex items-center gap-2">
           <Hash className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">{info.name}</h1>
-          <span className="text-sm text-muted-foreground ml-2">{info.description}</span>
+          <h1 className="text-lg font-semibold">{channel.name}</h1>
+          {channel.description && (
+            <span className="text-sm text-muted-foreground ml-2">
+              {channel.description}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Miembros">
@@ -96,60 +264,34 @@ export default function ChannelPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Fijar mensaje">
             <Pin className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-muted-foreground">{info.members} miembros</span>
+          <span className="text-sm text-muted-foreground">
+            {memberCount} miembro{memberCount !== 1 ? "s" : ""}
+          </span>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-6 py-4">
+      <div ref={scrollRef} className="flex-1 overflow-auto px-6 py-4">
         <div className="space-y-4">
           {messages.map((msg) => (
-            <div key={msg.id} className="flex gap-3 group hover:bg-accent/30 -mx-3 px-3 py-2 rounded-lg transition-colors">
+            <div
+              key={msg.id}
+              className="flex gap-3 group hover:bg-accent/30 -mx-3 px-3 py-2 rounded-lg transition-colors"
+            >
               <Avatar className="h-9 w-9 shrink-0">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs">{msg.avatar}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  {msg.user ? getInitials(msg.user.name) : "??"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-semibold text-sm">{msg.user}</span>
-                  <span className="text-xs text-muted-foreground">{msg.time}</span>
+                  <span className="font-semibold text-sm">
+                    {msg.user?.name || "Usuario"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatTime(msg.createdAt)}
+                  </span>
                 </div>
                 <p className="text-sm text-foreground mt-0.5">{msg.content}</p>
-                {msg.attachment && (
-                  <div className="mt-1.5 max-w-xs">
-                    {msg.attachment.type === "image" && msg.attachment.url ? (
-                      <div className="rounded-lg overflow-hidden border border-border">
-                        <img
-                          src={msg.attachment.url}
-                          alt={msg.attachment.name}
-                          className="w-full max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => window.open(msg.attachment!.url, "_blank")}
-                        />
-                        <div className="flex items-center gap-2 p-2 bg-accent/50">
-                          <Paperclip className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs truncate">{msg.attachment.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{msg.attachment.size}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 p-2 rounded-md bg-accent/50 border border-border">
-                        <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{msg.attachment.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{msg.attachment.size}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {msg.reactions && (
-                  <div className="flex gap-1 mt-1">
-                    {msg.reactions.map((r, i) => (
-                      <button key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent text-xs hover:bg-accent/80 transition-colors">
-                        <span>{r.emoji}</span>
-                        <span className="text-muted-foreground">{r.count}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-start gap-1">
                 <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -162,29 +304,47 @@ export default function ChannelPage() {
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="border-t border-border p-4">
         {attachment && (
           <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-accent/50 border border-border">
             <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-sm truncate flex-1">{attachment.name}</span>
-            <span className="text-xs text-muted-foreground">{(attachment.size / 1024).toFixed(1)} KB</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setAttachment(null)}>
+            <span className="text-xs text-muted-foreground">
+              {(attachment.size / 1024).toFixed(1)} KB
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0"
+              onClick={() => setAttachment(null)}
+            >
               <span className="text-xs">X</span>
             </Button>
           </div>
         )}
         <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-          <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" />
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => fileInputRef.current?.click()}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Paperclip className="h-4 w-4" />
           </Button>
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder={`Escribe en #${info.name}...`}
+            placeholder={`Escribe en #${channel.name}...`}
             className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
           />
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
@@ -197,7 +357,7 @@ export default function ChannelPage() {
             size="icon"
             className="h-8 w-8 shrink-0 bg-[var(--peach)] hover:bg-[var(--peach)]/90"
             onClick={sendMessage}
-            disabled={!message.trim() && !attachment}
+            disabled={!message.trim()}
           >
             <Send className="h-4 w-4" />
           </Button>
