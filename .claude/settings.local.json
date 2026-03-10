@@ -12,7 +12,10 @@
       "Bash(open https://dc-flow-app.pages.dev)",
       "Bash(curl:*)",
       "Bash(open \"https://af73b6b9.dc-flow-app.pages.dev\")",
-      "Bash(open \"https://17200749.dc-flow-app.pages.dev\")"
+      "Bash(open \"https://17200749.dc-flow-app.pages.dev\")",
+      "Bash(sudo apt-get:*)",
+      "Bash(find /workspaces/dcflow -maxdepth 2 -type f \\\\\\( -name \".gitignore\" -o -name \"*.env.local\" -o -name \"vercel.json\" -o -name \"package-lock.json\" -o -name \"yarn.lock\" -o -name \"pnpm-lock.yaml\" \\\\\\) 2>/dev/null | head -20)",
+      "Bash(node --version && npm --version 2>/dev/null || echo \"Node/npm check failed\")"
     ]
   },
   "enableAllProjectMcpServers": true,

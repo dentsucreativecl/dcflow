@@ -2,19 +2,13 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import {
+import type {
   Project,
   Client,
   TeamMember,
   Task,
   CalendarEvent,
   Milestone,
-  projects as initialProjects,
-  clients as initialClients,
-  teamMembers as initialTeamMembers,
-  tasks as initialTasks,
-  calendarEvents as initialCalendarEvents,
-  milestones as initialMilestones,
 } from "./data";
 
 // Modal types
@@ -112,12 +106,12 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       // Initial Data
-      projects: initialProjects,
-      clients: initialClients,
-      teamMembers: initialTeamMembers,
-      tasks: initialTasks,
-      calendarEvents: initialCalendarEvents,
-      milestones: initialMilestones,
+      projects: [],
+      clients: [],
+      teamMembers: [],
+      tasks: [],
+      calendarEvents: [],
+      milestones: [],
       activeTimer: null,
 
       // Initial UI State
