@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   // Also fetch folders, lists, and team count for these spaces
   const [foldersRes, listsRes, usersRes] = await Promise.all([
     admin.from('Folder').select('id, name, spaceId').in('spaceId', spaceIds).order('name'),
-    admin.from('List').select('id, name, folderId, spaceId').in('spaceId', spaceIds).order('name'),
+    admin.from('List').select('id, name, folderId, spaceId, description, isPitch, pitchResult, createdAt').in('spaceId', spaceIds).order('name'),
     admin.from('User').select('id').eq('isActive', true),
   ])
 

@@ -44,29 +44,25 @@ export default function ClientsPage() {
   const fetchClients = useCallback(async () => {
       const supabase = createClient();
 
-      // Fetch Spaces via API (bypasses RLS for admins)
-      const spaces: Array<{ id: string; name: string; color: string }> = await fetch("/api/spaces").then(r => r.json());
+      // Fetch Spaces + Lists via API (bypasses RLS for admins)
+      const apiRes = await fetch("/api/spaces?include=all").then(r => r.json());
+      const spaces: Array<{ id: string; name: string; color: string }> = apiRes?.spaces || [];
+      const apiLists: Array<{ id: string; spaceId: string }> = apiRes?.lists || [];
 
-      if (!spaces || !Array.isArray(spaces)) {
+      if (!spaces || spaces.length === 0) {
         setLoading(false);
         return;
       }
-
-      // Fetch list counts per space
-      const { data: lists } = await supabase
-        .from("List")
-        .select("id, spaceId");
 
       // Fetch space members with user info
       const { data: members } = await supabase
         .from("SpaceMember")
         .select("spaceId, userId, User(name, email, userType)");
 
+      // Build list count from API response
       const listCountBySpace = new Map<string, number>();
-      if (lists) {
-        for (const l of lists) {
-          listCountBySpace.set(l.spaceId, (listCountBySpace.get(l.spaceId) || 0) + 1);
-        }
+      for (const l of apiLists) {
+        listCountBySpace.set(l.spaceId, (listCountBySpace.get(l.spaceId) || 0) + 1);
       }
 
       const membersBySpace = new Map<string, Array<{ name: string; email: string; userType: string }>>();

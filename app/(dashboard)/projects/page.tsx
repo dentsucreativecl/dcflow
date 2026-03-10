@@ -73,45 +73,31 @@ export default function ProjectsPage() {
       if (!user) return;
       const supabase = createClient();
 
-      // Get allowed spaces via API (handles admin bypass)
-      let allowedSpaceIds: string[] | null = null;
-      if (!isAdmin) {
-        const spacesData = await fetch("/api/spaces").then(r => r.json());
-        if (Array.isArray(spacesData)) {
-          allowedSpaceIds = spacesData.map((s: any) => s.id);
-        }
-      }
+      // Fetch spaces, folders, and lists via API (bypasses RLS for admins)
+      const apiRes = await fetch("/api/spaces?include=all").then(r => r.json());
+      const apiSpaces: Array<{ id: string; name: string; color: string }> = apiRes?.spaces || [];
+      const apiFolders: Array<{ id: string; name: string; spaceId: string }> = apiRes?.folders || [];
+      const apiLists: Array<{ id: string; name: string; folderId: string | null; spaceId: string; description: string | null; isPitch: boolean; pitchResult: string | null; createdAt: string }> = apiRes?.lists || [];
 
-      // Fetch lists as projects with their space and folder info
-      let listQuery = supabase
-        .from("List")
-        .select(`
-          id, name, description, isPitch, pitchResult, createdAt,
-          Space(name, color),
-          Folder(name)
-        `)
-        .order("name");
-
-      // Filter by allowed spaces for non-admin users
-      if (allowedSpaceIds !== null) {
-        listQuery = listQuery.in("spaceId", allowedSpaceIds.length > 0 ? allowedSpaceIds : ["__none__"]);
-      }
-
-      const { data: lists } = await listQuery;
-
-      if (!lists) {
+      if (apiLists.length === 0) {
         setLoading(false);
         return;
       }
 
-      // Fetch task counts per list
+      // Build lookup maps
+      const spaceMap = new Map(apiSpaces.map(s => [s.id, s]));
+      const folderMap = new Map(apiFolders.map(f => [f.id, f]));
+      const listIds = apiLists.map(l => l.id);
+
+      // Fetch task counts and due dates per list (use admin API for tasks too)
       const { data: tasks } = await supabase
         .from("Task")
         .select("id, listId, Status(type)")
+        .in("listId", listIds)
         .is("parentId", null);
 
-      // Build per-list counts and latest due dates
-      const tasksByList = new Map<string, { total: number; done: number; latestDue: string | null }>();
+      // Build per-list counts
+      const tasksByList = new Map<string, { total: number; done: number }>();
       if (tasks) {
         for (const t of tasks as Array<Record<string, unknown>>) {
           const listId = t.listId as string;
@@ -119,7 +105,7 @@ export default function ProjectsPage() {
           const statusType = (status?.type as string) || "TODO";
 
           if (!tasksByList.has(listId)) {
-            tasksByList.set(listId, { total: 0, done: 0, latestDue: null });
+            tasksByList.set(listId, { total: 0, done: 0 });
           }
           const entry = tasksByList.get(listId)!;
           entry.total++;
@@ -131,6 +117,7 @@ export default function ProjectsPage() {
       const { data: dueTasks } = await supabase
         .from("Task")
         .select("listId, dueDate")
+        .in("listId", listIds)
         .not("dueDate", "is", null)
         .is("parentId", null)
         .order("dueDate", { ascending: false });
@@ -145,27 +132,26 @@ export default function ProjectsPage() {
         }
       }
 
-      const mapped: ProjectRow[] = lists.map((l: Record<string, unknown>) => {
-        const space = l.Space as Record<string, unknown> | null;
-        const folder = l.Folder as Record<string, unknown> | null;
-        const listId = l.id as string;
-        const counts = tasksByList.get(listId) || { total: 0, done: 0 };
+      const mapped: ProjectRow[] = apiLists.map((l) => {
+        const space = spaceMap.get(l.spaceId);
+        const folder = l.folderId ? folderMap.get(l.folderId) : null;
+        const counts = tasksByList.get(l.id) || { total: 0, done: 0 };
         const progress = counts.total > 0 ? Math.round((counts.done / counts.total) * 100) : 0;
 
         return {
-          id: listId,
-          name: l.name as string,
-          description: l.description as string | null,
-          spaceName: (space?.name as string) || "General",
-          spaceColor: (space?.color as string) || "#666",
-          folderName: (folder?.name as string) || null,
-          isPitch: l.isPitch as boolean,
-          pitchResult: l.pitchResult as string | null,
+          id: l.id,
+          name: l.name,
+          description: l.description || null,
+          spaceName: space?.name || "General",
+          spaceColor: space?.color || "#666",
+          folderName: folder?.name || null,
+          isPitch: l.isPitch || false,
+          pitchResult: l.pitchResult || null,
           totalTasks: counts.total,
           doneTasks: counts.done,
           progress,
-          dueDate: latestDueByList.get(listId) || null,
-          createdAt: l.createdAt as string,
+          dueDate: latestDueByList.get(l.id) || null,
+          createdAt: l.createdAt || "",
         };
       });
 
