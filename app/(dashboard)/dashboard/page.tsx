@@ -59,7 +59,7 @@ export default function DashboardPage() {
             .eq("userId", currentUserId),
           supabase.from("List").select("id"),
           supabase.from("User").select("id").eq("isActive", true),
-          supabase.from("Space").select("id, name").order("name"),
+          fetch("/api/spaces").then(r => r.json()),
         ]);
 
         if (assignmentsRes.data) {
@@ -92,8 +92,8 @@ export default function DashboardPage() {
 
         if (listsRes.data) setListCount(listsRes.data.length);
         if (usersRes.data) setTeamCount(usersRes.data.length);
-        if (spacesRes.data) {
-          setAllSpaces(spacesRes.data.map((s: { id: string; name: string }) => ({ value: s.name, label: s.name, count: 0 })));
+        if (Array.isArray(spacesRes)) {
+          setAllSpaces(spacesRes.map((s: { id: string; name: string }) => ({ value: s.name, label: s.name, count: 0 })));
         }
       } catch (err) {
         console.error("Dashboard fetchData error:", err);

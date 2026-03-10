@@ -72,6 +72,16 @@ const SERVICE_COLORS: Record<string, string> = {
   'Media/Pauta': '#ef4444',
 };
 
+// Name aliases: Excel name → DB name (lowercase)
+const NAME_ALIASES: Record<string, string> = {
+  'gourmet comunicaciones internas': 'gourmet cc.ii',
+};
+
+function normalizeClientName(name: string): string {
+  const key = name.toLowerCase().trim();
+  return NAME_ALIASES[key] || key;
+}
+
 function cuid(): string {
   // Simple cuid-like generator
   const timestamp = Date.now().toString(36);
@@ -275,7 +285,7 @@ async function createFolders(
   const createdFolders: { id: string; name: string; spaceId: string; spaceName: string }[] = [];
 
   for (const client of clients) {
-    const space = spaceMap.get(client.name.toLowerCase().trim());
+    const space = spaceMap.get(normalizeClientName(client.name));
     if (!space) {
       warnings.clientsNotFound.push(client.name);
       continue;
@@ -466,9 +476,9 @@ async function assignSpaceMembers(
   const userByEmail = new Map<string, { id: string; email: string; name: string; role: string }>();
   for (const u of users) userByEmail.set(u.email.toLowerCase(), u);
 
-  // Build SOW map: client name → services
+  // Build SOW map: normalized client name → services
   const sowMap = new Map<string, string[]>();
-  for (const c of clients) sowMap.set(c.name.toLowerCase().trim(), c.services);
+  for (const c of clients) sowMap.set(normalizeClientName(c.name), c.services);
 
   // Collect all desired memberships: Map<spaceId, Map<userId, role>>
   const memberships = new Map<string, Map<string, string>>();
@@ -488,7 +498,7 @@ async function assignSpaceMembers(
     // Skip leaders/transversal rows (they have no specific client or "TODOS")
     if (!assignment.client || assignment.client.startsWith('TODOS')) continue;
 
-    const space = spaceMap.get(assignment.client.toLowerCase().trim());
+    const space = spaceMap.get(normalizeClientName(assignment.client));
     if (!space) continue; // client not a space
 
     const user = userByEmail.get(assignment.email);

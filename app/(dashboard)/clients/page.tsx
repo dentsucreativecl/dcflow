@@ -44,13 +44,10 @@ export default function ClientsPage() {
   const fetchClients = useCallback(async () => {
       const supabase = createClient();
 
-      // Fetch Spaces as clients (each Space = client account in the agency)
-      const { data: spaces } = await supabase
-        .from("Space")
-        .select("id, name, color")
-        .order("name");
+      // Fetch Spaces via API (bypasses RLS for admins)
+      const spaces: Array<{ id: string; name: string; color: string }> = await fetch("/api/spaces").then(r => r.json());
 
-      if (!spaces) {
+      if (!spaces || !Array.isArray(spaces)) {
         setLoading(false);
         return;
       }

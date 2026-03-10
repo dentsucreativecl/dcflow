@@ -73,15 +73,12 @@ export default function ProjectsPage() {
       if (!user) return;
       const supabase = createClient();
 
-      // For non-admin users, get their allowed spaces
+      // Get allowed spaces via API (handles admin bypass)
       let allowedSpaceIds: string[] | null = null;
       if (!isAdmin) {
-        const { data: memberships } = await supabase
-          .from("SpaceMember")
-          .select("spaceId")
-          .eq("userId", user.id);
-        if (memberships) {
-          allowedSpaceIds = memberships.map(m => m.spaceId);
+        const spacesData = await fetch("/api/spaces").then(r => r.json());
+        if (Array.isArray(spacesData)) {
+          allowedSpaceIds = spacesData.map((s: any) => s.id);
         }
       }
 

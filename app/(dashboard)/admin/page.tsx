@@ -140,7 +140,7 @@ export default function AdminPage() {
                 .limit(5),
             supabase.from("User").select("id, name, email, role, isActive").order("name"),
             supabase.from("Channel").select("id, name, slug, isArchived").order("name"),
-            supabase.from("Space").select("id, name, color, isArchived").order("name"),
+            fetch("/api/spaces").then(r => r.json()),
         ]);
 
         setProjectCount(projectsRes.count ?? 0);
@@ -173,8 +173,8 @@ export default function AdminPage() {
         if (channelsRes.data) setChannels(channelsRes.data as ChannelRow[]);
 
         // Build space rows with counts
-        if (spacesDataRes.data) {
-            const spaceIds = spacesDataRes.data.map((s: any) => s.id);
+        if (spacesDataRes) {
+            const spaceIds = spacesDataRes.map((s: any) => s.id);
 
             // Count projects per space
             const { data: listsData } = await supabase
@@ -199,7 +199,7 @@ export default function AdminPage() {
             });
 
             setSpaces(
-                spacesDataRes.data.map((s: any) => ({
+                spacesDataRes.map((s: any) => ({
                     id: s.id,
                     name: s.name,
                     color: s.color,
@@ -212,7 +212,7 @@ export default function AdminPage() {
             // Build project rows
             if (listsData) {
                 const spaceMap = new Map<string, { name: string; color: string }>();
-                spacesDataRes.data.forEach((s: any) => spaceMap.set(s.id, { name: s.name, color: s.color }));
+                spacesDataRes.forEach((s: any) => spaceMap.set(s.id, { name: s.name, color: s.color }));
 
                 const listIds = listsData.map((l: any) => l.id);
                 const { data: tasksData } = await supabase

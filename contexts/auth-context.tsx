@@ -217,7 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         hasPermission,
         canAccessRoute,
-        isAdmin: user?.role === 'admin' || user?.supabaseRole === 'ADMIN',
+        isAdmin: user?.role === 'admin' || user?.supabaseRole === 'ADMIN' || user?.supabaseRole === 'SUPER_ADMIN',
         isPM: user?.role === 'pm' || user?.supabaseRole === 'PM',
         isMember: user?.role === 'member',
         isClient: user?.role === 'client',

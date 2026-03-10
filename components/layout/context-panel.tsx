@@ -133,35 +133,13 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
             const supabase = createClient();
 
             try {
-                // For non-admin users, get allowed spaces
-                let allowedSpaceIds: string[] | null = null;
-                if (!isAdmin) {
-                    const { data: memberships } = await supabase
-                        .from("SpaceMember")
-                        .select("spaceId")
-                        .eq("userId", user.id);
-                    if (memberships) {
-                        allowedSpaceIds = memberships.map(m => m.spaceId);
-                    }
-                }
+                // Use API route that bypasses RLS for admins
+                const res = await fetch("/api/spaces?include=all");
+                const data = await res.json();
 
-                const [spacesRes, foldersRes, listsRes] = await Promise.all([
-                    supabase.from("Space").select("id, name, color, icon").order("name"),
-                    supabase.from("Folder").select("id, name, spaceId").order("name"),
-                    supabase.from("List").select("id, name, folderId, spaceId").order("name"),
-                ]);
-
-                // Filter by allowed spaces for non-admin users
-                let filteredSpaces = spacesRes.data || [];
-                let filteredFolders = foldersRes.data || [];
-                let filteredLists = listsRes.data || [];
-
-                if (allowedSpaceIds !== null) {
-                    const spaceSet = new Set(allowedSpaceIds);
-                    filteredSpaces = filteredSpaces.filter(s => spaceSet.has(s.id));
-                    filteredFolders = filteredFolders.filter(f => spaceSet.has(f.spaceId));
-                    filteredLists = filteredLists.filter(l => spaceSet.has(l.spaceId));
-                }
+                const filteredSpaces = data.spaces || [];
+                const filteredFolders = data.folders || [];
+                const filteredLists = data.lists || [];
 
                 setSpaces(filteredSpaces);
                 setFolders(filteredFolders);
