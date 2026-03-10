@@ -62,15 +62,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(spaces || [])
   }
 
-  // Also fetch folders and lists for these spaces
-  const [foldersRes, listsRes] = await Promise.all([
+  // Also fetch folders, lists, and team count for these spaces
+  const [foldersRes, listsRes, usersRes] = await Promise.all([
     admin.from('Folder').select('id, name, spaceId').in('spaceId', spaceIds).order('name'),
     admin.from('List').select('id, name, folderId, spaceId').in('spaceId', spaceIds).order('name'),
+    admin.from('User').select('id').eq('isActive', true),
   ])
 
   return NextResponse.json({
     spaces: spaces || [],
     folders: foldersRes.data || [],
     lists: listsRes.data || [],
+    teamCount: usersRes.data?.length || 0,
   })
 }

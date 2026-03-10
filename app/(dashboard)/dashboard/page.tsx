@@ -17,7 +17,6 @@ import {
   type DateGroup,
 } from "@/components/features/task-date-groups";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
@@ -46,7 +45,7 @@ export default function DashboardPage() {
       const supabase = createClient();
 
       try {
-        const [assignmentsRes, listsRes, usersRes, spacesRes] = await Promise.all([
+        const [assignmentsRes, spacesRes] = await Promise.all([
           supabase
             .from("TaskAssignment")
             .select(`
@@ -57,9 +56,7 @@ export default function DashboardPage() {
               )
             `)
             .eq("userId", currentUserId),
-          supabase.from("List").select("id"),
-          supabase.from("User").select("id").eq("isActive", true),
-          fetch("/api/spaces").then(r => r.json()),
+          fetch("/api/spaces?include=all").then(r => r.json()),
         ]);
 
         if (assignmentsRes.data) {
@@ -90,10 +87,11 @@ export default function DashboardPage() {
           setTasks(mapped);
         }
 
-        if (listsRes.data) setListCount(listsRes.data.length);
-        if (usersRes.data) setTeamCount(usersRes.data.length);
-        if (Array.isArray(spacesRes)) {
-          setAllSpaces(spacesRes.map((s: { id: string; name: string }) => ({ value: s.name, label: s.name, count: 0 })));
+        // Extract counts from the API response (bypasses RLS)
+        if (spacesRes && spacesRes.spaces) {
+          setListCount(spacesRes.lists?.length || 0);
+          setTeamCount(spacesRes.teamCount || 0);
+          setAllSpaces(spacesRes.spaces.map((s: { id: string; name: string }) => ({ value: s.name, label: s.name, count: 0 })));
         }
       } catch (err) {
         console.error("Dashboard fetchData error:", err);
