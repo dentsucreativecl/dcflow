@@ -173,6 +173,9 @@ model User {
   notificationsActed   Notification[]       @relation("NotificationActor")
   notificationPref     NotificationPreference?
   checklistAssignments ChecklistItem[]      @relation("ChecklistAssignee")
+  channelsCreated      Channel[]            @relation("ChannelCreator")
+  channelMembers       ChannelMember[]
+  messages             Message[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -737,4 +740,47 @@ model Invitation {
 
   @@index([email])
   @@index([token])
+}
+
+// ============================================
+// CANALES Y MENSAJES
+// ============================================
+
+model Channel {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  isPrivate   Boolean   @default(false)
+  isArchived  Boolean   @default(false)
+  createdBy   String
+  creator     User      @relation("ChannelCreator", fields: [createdBy], references: [id])
+  messages    Message[]
+  members     ChannelMember[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ChannelMember {
+  id        String   @id @default(cuid())
+  channelId String
+  userId    String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime @default(now())
+
+  @@unique([channelId, userId])
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  channelId   String
+  userId      String
+  content     String
+  attachments Json?
+  isEdited    Boolean   @default(false)
+  channel     Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
