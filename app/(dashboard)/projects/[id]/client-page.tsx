@@ -318,7 +318,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="budget" className="flex-1 mt-6">
-          <ProjectBudgetTab project={project} tasks={projectTasks} />
+          <ProjectBudgetTab projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="activity" className="flex-1 mt-6">

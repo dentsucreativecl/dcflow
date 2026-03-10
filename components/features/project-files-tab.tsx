@@ -1,112 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { format } from "date-fns";
 import {
   FileText,
   Image,
   Film,
   File,
-  Upload,
-  FolderPlus,
-  MoreHorizontal,
   Download,
-  Trash2,
+  Loader2,
   Grid,
   List,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-
-// Mock files data
-const mockFiles = [
-  {
-    id: "f-1",
-    name: "Brand Guidelines v2.pdf",
-    type: "document",
-    size: "2.4 MB",
-    uploadedBy: "Sarah Chen",
-    uploadedAt: "2024-03-02",
-  },
-  {
-    id: "f-2",
-    name: "Hero Banner Final.png",
-    type: "image",
-    size: "4.8 MB",
-    uploadedBy: "Rachel Green",
-    uploadedAt: "2024-03-01",
-  },
-  {
-    id: "f-3",
-    name: "Logo Variations.ai",
-    type: "document",
-    size: "12.3 MB",
-    uploadedBy: "Sarah Chen",
-    uploadedAt: "2024-02-28",
-  },
-  {
-    id: "f-4",
-    name: "Promo Video Draft.mp4",
-    type: "video",
-    size: "156 MB",
-    uploadedBy: "Alex Rivera",
-    uploadedAt: "2024-02-25",
-  },
-  {
-    id: "f-5",
-    name: "Color Palette.sketch",
-    type: "document",
-    size: "8.1 MB",
-    uploadedBy: "Sarah Chen",
-    uploadedAt: "2024-02-20",
-  },
-];
-
-const getFileIcon = (type: string) => {
-  switch (type) {
-    case "image":
-      // eslint-disable-next-line jsx-a11y/alt-text
-      return <Image className="h-6 w-6 text-studio-info" />;
-    case "video":
-      return <Film className="h-6 w-6 text-studio-warning" />;
-    case "document":
-    default:
-      return <FileText className="h-6 w-6 text-primary" />;
-  }
-};
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { createClient } from "@/lib/supabase/client";
 
 interface ProjectFilesTabProps {
   projectId: string;
 }
 
+interface FileRow {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  createdAt: string;
+  taskTitle: string;
+  uploaderName: string;
+  uploaderInitials: string;
+}
+
+const getFileIcon = (type: string) => {
+  if (type.startsWith("image/")) return Image;
+  if (type.startsWith("video/")) return Film;
+  if (type.includes("pdf") || type.includes("document") || type.includes("text")) return FileText;
+  return File;
+};
+
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 export function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
+  const [files, setFiles] = useState<FileRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const fetchFiles = useCallback(async () => {
+    const supabase = createClient();
+
+    const { data: taskIds } = await supabase
+      .from("Task")
+      .select("id")
+      .eq("listId", projectId);
+
+    if (!taskIds || taskIds.length === 0) {
+      setFiles([]);
+      setLoading(false);
+      return;
+    }
+
+    const ids = taskIds.map((t) => t.id);
+
+    const { data } = await supabase
+      .from("Attachment")
+      .select("id, fileName, fileUrl, fileType, fileSize, createdAt, Task:taskId(title), User:uploadedById(name)")
+      .in("taskId", ids)
+      .order("createdAt", { ascending: false });
+
+    const parsed: FileRow[] = (data || []).map((a: any) => {
+      const task = Array.isArray(a.Task) ? a.Task[0] : a.Task;
+      const user = Array.isArray(a.User) ? a.User[0] : a.User;
+      const name = user?.name || "Usuario";
+      return {
+        id: a.id,
+        fileName: a.fileName,
+        fileUrl: a.fileUrl,
+        fileType: a.fileType,
+        fileSize: a.fileSize,
+        createdAt: a.createdAt,
+        taskTitle: task?.title || "",
+        uploaderName: name,
+        uploaderInitials: name.split(" ").map((n: string) => n[0]).join("").slice(0, 2),
+      };
+    });
+
+    setFiles(parsed);
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="default" className="gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Files
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <FolderPlus className="h-4 w-4" />
-            New Folder
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
+        <h3 className="font-semibold text-foreground">
+          Archivos ({files.length})
+        </h3>
+        <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
           <Button
             variant={viewMode === "grid" ? "secondary" : "ghost"}
             size="icon"
+            className="h-7 w-7"
             onClick={() => setViewMode("grid")}
           >
             <Grid className="h-4 w-4" />
@@ -114,6 +124,7 @@ export function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
           <Button
             variant={viewMode === "list" ? "secondary" : "ghost"}
             size="icon"
+            className="h-7 w-7"
             onClick={() => setViewMode("list")}
           >
             <List className="h-4 w-4" />
@@ -121,99 +132,85 @@ export function ProjectFilesTab({ projectId }: ProjectFilesTabProps) {
         </div>
       </div>
 
-      {/* Files */}
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {mockFiles.map((file) => (
-            <Card
-              key={file.id}
-              className="p-4 hover:border-primary/50 transition-colors cursor-pointer group"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="h-16 w-16 rounded-lg bg-secondary flex items-center justify-center mb-3">
-                  {getFileIcon(file.type)}
+      {files.length === 0 ? (
+        <Card className="p-8">
+          <div className="text-center">
+            <File className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Sin archivos adjuntos</p>
+          </div>
+        </Card>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {files.map((file) => {
+            const Icon = getFileIcon(file.fileType);
+            return (
+              <Card key={file.id} className="p-4 hover:bg-secondary/50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 flex-shrink-0">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {file.fileName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(file.fileSize)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                      en {file.taskTitle}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-foreground truncate w-full">
-                  {file.name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">{file.size}</p>
-              </div>
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                      <MoreHorizontal className="h-4 w-4" />
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
+                        {file.uploaderInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(file.createdAt), "MMM d")}
+                    </span>
+                  </div>
+                  <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <Download className="h-3.5 w-3.5" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </Card>
-          ))}
+                  </a>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card className="divide-y divide-border">
-          {mockFiles.map((file) => (
-            <div
-              key={file.id}
-              className="flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors cursor-pointer"
-            >
-              <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
-                {getFileIcon(file.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {file.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {file.uploadedBy} • {file.uploadedAt}
-                </p>
-              </div>
-              <Badge variant="secondary">{file.size}</Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
+          {files.map((file) => {
+            const Icon = getFileIcon(file.fileType);
+            return (
+              <div key={file.id} className="flex items-center gap-4 p-3 hover:bg-secondary/50 transition-colors">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 flex-shrink-0">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(file.fileSize)} &middot; en {file.taskTitle}</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
+                      {file.uploaderInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {format(new Date(file.createdAt), "MMM d, yyyy")}
+                </div>
+                <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Download className="h-3.5 w-3.5" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {mockFiles.length === 0 && (
-        <Card className="flex flex-col items-center justify-center p-12 text-center">
-          <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-            <File className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">No files yet</h3>
-          <p className="text-muted-foreground mt-1 mb-4">
-            Upload files to share with your team
-          </p>
-          <Button className="gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Files
-          </Button>
+                </a>
+              </div>
+            );
+          })}
         </Card>
       )}
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { format, differenceInDays, addDays } from "date-fns";
 import {
   CheckCircle2,
@@ -7,125 +8,120 @@ import {
   Clock,
   AlertCircle,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAppStore } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ProjectTimelineTabProps {
   projectId: string;
 }
 
-// Mock milestones
-const getMilestones = (projectId: string) => [
-  {
-    id: "m-1",
-    title: "Project Kickoff",
-    date: "2024-01-10",
-    status: "completed",
-    description: "Initial meeting with client to align on project goals",
-  },
-  {
-    id: "m-2",
-    title: "Discovery Phase Complete",
-    date: "2024-01-24",
-    status: "completed",
-    description: "Research and requirements gathering finished",
-  },
-  {
-    id: "m-3",
-    title: "Design Review",
-    date: "2024-02-15",
-    status: "completed",
-    description: "First design iteration review with stakeholders",
-  },
-  {
-    id: "m-4",
-    title: "Design Approval",
-    date: "2024-03-01",
-    status: "in-progress",
-    description: "Final design sign-off from client",
-  },
-  {
-    id: "m-5",
-    title: "Development Complete",
-    date: "2024-03-10",
-    status: "upcoming",
-    description: "All development work finished",
-  },
-  {
-    id: "m-6",
-    title: "Project Delivery",
-    date: "2024-03-15",
-    status: "upcoming",
-    description: "Final delivery and handoff to client",
-  },
-];
+interface TimelineTask {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  statusType: string;
+  assigneeName: string | null;
+  assigneeInitials: string;
+}
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "completed":
-      return <CheckCircle2 className="h-5 w-5 text-studio-success" />;
-    case "in-progress":
-      return <Clock className="h-5 w-5 text-studio-info" />;
-    case "overdue":
-      return <AlertCircle className="h-5 w-5 text-studio-error" />;
-    default:
-      return <Circle className="h-5 w-5 text-muted-foreground" />;
-  }
-};
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "completed":
-      return (
-        <Badge className="bg-studio-success/20 text-studio-success">
-          Completed
-        </Badge>
-      );
-    case "in-progress":
-      return (
-        <Badge className="bg-studio-info/20 text-studio-info">In Progress</Badge>
-      );
-    case "overdue":
-      return (
-        <Badge className="bg-studio-error/20 text-studio-error">Overdue</Badge>
-      );
-    default:
-      return <Badge variant="secondary">Upcoming</Badge>;
-  }
-};
+interface ProjectDates {
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+}
 
 export function ProjectTimelineTab({ projectId }: ProjectTimelineTabProps) {
-  const { tasks, projects } = useAppStore();
-  const project = projects.find((p) => p.id === projectId);
-  const projectTasks = tasks.filter((t) => t.projectId === projectId);
-  const milestones = getMilestones(projectId);
+  const [tasks, setTasks] = useState<TimelineTask[]>([]);
+  const [projectDates, setProjectDates] = useState<ProjectDates | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Calculate project timeline
-  const startDate = project ? new Date(project.createdAt) : new Date();
-  const endDate = project ? new Date(project.dueDate) : addDays(new Date(), 30);
-  const totalDays = differenceInDays(endDate, startDate);
+  const fetchData = useCallback(async () => {
+    const supabase = createClient();
+
+    // Fetch project dates
+    const { data: listData } = await supabase
+      .from("List")
+      .select("startDate, endDate, createdAt")
+      .eq("id", projectId)
+      .single();
+
+    if (listData) {
+      setProjectDates(listData as ProjectDates);
+    }
+
+    // Fetch tasks with status and first assignee
+    const { data: taskData } = await supabase
+      .from("Task")
+      .select("id, title, dueDate, completedAt, Status:statusId(type), TaskAssignment(User:userId(name))")
+      .eq("listId", projectId)
+      .order("dueDate", { ascending: true, nullsFirst: false });
+
+    const parsed: TimelineTask[] = (taskData || []).map((t: any) => {
+      const status = Array.isArray(t.Status) ? t.Status[0] : t.Status;
+      const firstAssignment = (t.TaskAssignment || [])[0];
+      const user = firstAssignment ? (Array.isArray(firstAssignment.User) ? firstAssignment.User[0] : firstAssignment.User) : null;
+      const name = user?.name || null;
+      return {
+        id: t.id,
+        title: t.title,
+        dueDate: t.dueDate,
+        completedAt: t.completedAt,
+        statusType: status?.type || "TODO",
+        assigneeName: name,
+        assigneeInitials: name ? name.split(" ").map((n: string) => n[0]).join("").slice(0, 2) : "",
+      };
+    });
+
+    setTasks(parsed);
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const startDate = projectDates?.startDate
+    ? new Date(projectDates.startDate)
+    : new Date(projectDates?.createdAt || new Date());
+  const endDate = projectDates?.endDate
+    ? new Date(projectDates.endDate)
+    : addDays(new Date(), 30);
+  const totalDays = Math.max(differenceInDays(endDate, startDate), 1);
   const daysElapsed = differenceInDays(new Date(), startDate);
-  const progressPercent = Math.min(Math.round((daysElapsed / totalDays) * 100), 100);
+  const progressPercent = Math.min(Math.max(Math.round((daysElapsed / totalDays) * 100), 0), 100);
+
+  // Tasks with due dates for timeline
+  const tasksWithDates = tasks.filter((t) => t.dueDate);
 
   return (
     <div className="space-y-6">
       {/* Timeline Overview */}
       <Card className="p-5">
-        <h3 className="font-semibold text-foreground mb-4">Project Timeline</h3>
+        <h3 className="font-semibold text-foreground mb-4">Línea de Tiempo</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between text-sm">
             <div>
-              <span className="text-muted-foreground">Start: </span>
+              <span className="text-muted-foreground">Inicio: </span>
               <span className="font-medium text-foreground">
                 {format(startDate, "MMM d, yyyy")}
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground">Due: </span>
+              <span className="text-muted-foreground">Fin: </span>
               <span className="font-medium text-foreground">
                 {format(endDate, "MMM d, yyyy")}
               </span>
@@ -145,45 +141,11 @@ export function ProjectTimelineTab({ projectId }: ProjectTimelineTabProps) {
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              {daysElapsed} days elapsed
+              {Math.max(daysElapsed, 0)} días transcurridos
             </span>
             <span className="text-muted-foreground">
-              {Math.max(totalDays - daysElapsed, 0)} days remaining
+              {Math.max(totalDays - daysElapsed, 0)} días restantes
             </span>
-          </div>
-        </div>
-      </Card>
-
-      {/* Milestones */}
-      <Card className="p-5">
-        <h3 className="font-semibold text-foreground mb-4">Milestones</h3>
-        <div className="relative">
-          {/* Timeline line */}
-          <div className="absolute left-[11px] top-0 bottom-0 w-0.5 bg-border" />
-
-          <div className="space-y-6">
-            {milestones.map((milestone, index) => (
-              <div key={milestone.id} className="relative flex gap-4">
-                <div className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-card">
-                  {getStatusIcon(milestone.status)}
-                </div>
-                <div className="flex-1 pb-6">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h4 className="font-medium text-foreground">
-                      {milestone.title}
-                    </h4>
-                    {getStatusBadge(milestone.status)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {milestone.description}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {format(new Date(milestone.date), "MMMM d, yyyy")}
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </Card>
@@ -191,65 +153,70 @@ export function ProjectTimelineTab({ projectId }: ProjectTimelineTabProps) {
       {/* Task Timeline */}
       <Card className="p-5">
         <h3 className="font-semibold text-foreground mb-4">
-          Task Schedule ({projectTasks.length})
+          Tareas Programadas ({tasksWithDates.length})
         </h3>
-        <div className="space-y-3">
-          {projectTasks.slice(0, 6).map((task) => {
-            const daysUntilDue = differenceInDays(
-              new Date(task.dueDate),
-              new Date()
-            );
-            const isOverdue = daysUntilDue < 0 && task.status !== "done";
+        {tasksWithDates.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Sin tareas con fecha asignada
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {tasksWithDates.map((task) => {
+              const dueDate = new Date(task.dueDate!);
+              const daysUntilDue = differenceInDays(dueDate, new Date());
+              const isDone = task.statusType === "DONE";
+              const isOverdue = daysUntilDue < 0 && !isDone;
 
-            return (
-              <div
-                key={task.id}
-                className={cn(
-                  "flex items-center gap-4 rounded-lg border p-3",
-                  isOverdue ? "border-studio-error/50 bg-studio-error/5" : "border-border"
-                )}
-              >
-                <div className="flex-shrink-0">
-                  {task.status === "done" ? (
-                    <CheckCircle2 className="h-5 w-5 text-studio-success" />
-                  ) : isOverdue ? (
-                    <AlertCircle className="h-5 w-5 text-studio-error" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground" />
+              return (
+                <div
+                  key={task.id}
+                  className={cn(
+                    "flex items-center gap-4 rounded-lg border p-3",
+                    isOverdue ? "border-studio-error/50 bg-studio-error/5" : "border-border"
+                  )}
+                >
+                  <div className="flex-shrink-0">
+                    {isDone ? (
+                      <CheckCircle2 className="h-5 w-5 text-studio-success" />
+                    ) : isOverdue ? (
+                      <AlertCircle className="h-5 w-5 text-studio-error" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        "text-sm font-medium truncate",
+                        isDone
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground"
+                      )}
+                    >
+                      {task.title}
+                    </p>
+                  </div>
+                  {task.assigneeName && (
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">
+                        {task.assigneeInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    {format(dueDate, "MMM d")}
+                  </div>
+                  {isOverdue && (
+                    <Badge className="bg-studio-error/20 text-studio-error">
+                      Vencida
+                    </Badge>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={cn(
-                      "text-sm font-medium truncate",
-                      task.status === "done"
-                        ? "text-muted-foreground line-through"
-                        : "text-foreground"
-                    )}
-                  >
-                    {task.title}
-                  </p>
-                </div>
-                {task.assignee && (
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">
-                      {task.assignee.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(task.dueDate), "MMM d")}
-                </div>
-                {isOverdue && (
-                  <Badge className="bg-studio-error/20 text-studio-error">
-                    Overdue
-                  </Badge>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
     </div>
   );

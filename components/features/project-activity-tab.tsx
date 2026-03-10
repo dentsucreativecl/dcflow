@@ -1,233 +1,195 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   CheckCircle2,
   MessageSquare,
-  FileText,
   Upload,
   Edit,
   Plus,
-  Trash2,
   Clock,
   User,
-  GitBranch,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 
 interface ProjectActivityTabProps {
   projectId: string;
 }
 
-// Mock activity data
-const getActivityData = (projectId: string) => [
-  {
-    id: "a-1",
-    type: "task_completed",
-    user: { name: "Sarah Chen", avatar: "SC" },
-    action: "completed",
-    target: "Design homepage mockup",
-    timestamp: "2024-03-03T14:30:00",
-    icon: CheckCircle2,
-    iconColor: "text-studio-success",
-    iconBg: "bg-studio-success/20",
-  },
-  {
-    id: "a-2",
-    type: "comment",
-    user: { name: "Mike Johnson", avatar: "MJ" },
-    action: "commented on",
-    target: "Implement navigation component",
-    timestamp: "2024-03-03T13:15:00",
-    content: "I'll need the design specs for the mobile menu. @Sarah can you share those?",
-    icon: MessageSquare,
-    iconColor: "text-studio-info",
-    iconBg: "bg-studio-info/20",
-  },
-  {
-    id: "a-3",
-    type: "file_uploaded",
-    user: { name: "Rachel Green", avatar: "RG" },
-    action: "uploaded",
-    target: "Brand Guidelines v2.pdf",
-    timestamp: "2024-03-03T11:45:00",
-    icon: Upload,
-    iconColor: "text-primary",
-    iconBg: "bg-primary/20",
-  },
-  {
-    id: "a-4",
-    type: "task_created",
-    user: { name: "John Doe", avatar: "JD" },
-    action: "created task",
-    target: "API integration",
-    timestamp: "2024-03-03T10:20:00",
-    icon: Plus,
-    iconColor: "text-studio-success",
-    iconBg: "bg-studio-success/20",
-  },
-  {
-    id: "a-5",
-    type: "task_updated",
-    user: { name: "Emily Davis", avatar: "ED" },
-    action: "updated status to In Progress on",
-    target: "User research interviews",
-    timestamp: "2024-03-03T09:00:00",
-    icon: Edit,
-    iconColor: "text-studio-warning",
-    iconBg: "bg-studio-warning/20",
-  },
-  {
-    id: "a-6",
-    type: "time_logged",
-    user: { name: "Lisa Park", avatar: "LP" },
-    action: "logged 4 hours on",
-    target: "Implement navigation component",
-    timestamp: "2024-03-02T17:30:00",
-    icon: Clock,
-    iconColor: "text-muted-foreground",
-    iconBg: "bg-secondary",
-  },
-  {
-    id: "a-7",
-    type: "member_added",
-    user: { name: "John Doe", avatar: "JD" },
-    action: "added",
-    target: "Alex Rivera to the project",
-    timestamp: "2024-03-02T14:00:00",
-    icon: User,
-    iconColor: "text-primary",
-    iconBg: "bg-primary/20",
-  },
-  {
-    id: "a-8",
-    type: "comment",
-    user: { name: "David Kim", avatar: "DK" },
-    action: "commented on",
-    target: "Brand guidelines document",
-    timestamp: "2024-03-02T11:30:00",
-    content: "The color palette looks great! Let's proceed with these choices.",
-    icon: MessageSquare,
-    iconColor: "text-studio-info",
-    iconBg: "bg-studio-info/20",
-  },
-];
+interface ActivityRow {
+  id: string;
+  type: string;
+  field: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  createdAt: string;
+  user: { name: string; avatarUrl: string | null } | null;
+  task: { title: string } | null;
+}
+
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case "CREATED":
+      return { icon: Plus, color: "text-studio-success", bg: "bg-studio-success/20" };
+    case "STATUS_CHANGED":
+      return { icon: Edit, color: "text-studio-warning", bg: "bg-studio-warning/20" };
+    case "ASSIGNED":
+    case "UNASSIGNED":
+      return { icon: User, color: "text-primary", bg: "bg-primary/20" };
+    case "COMMENT_ADDED":
+      return { icon: MessageSquare, color: "text-studio-info", bg: "bg-studio-info/20" };
+    case "ATTACHMENT_ADDED":
+      return { icon: Upload, color: "text-primary", bg: "bg-primary/20" };
+    case "DUE_DATE_CHANGED":
+      return { icon: Clock, color: "text-muted-foreground", bg: "bg-secondary" };
+    case "PRIORITY_CHANGED":
+      return { icon: Edit, color: "text-studio-error", bg: "bg-studio-error/20" };
+    default:
+      return { icon: Edit, color: "text-muted-foreground", bg: "bg-secondary" };
+  }
+};
+
+const getActionText = (type: string, field: string | null, oldValue: string | null, newValue: string | null) => {
+  switch (type) {
+    case "CREATED": return "creó la tarea";
+    case "STATUS_CHANGED": return `cambió estado a ${newValue || ""}`;
+    case "ASSIGNED": return `asignó a ${newValue || ""}`;
+    case "UNASSIGNED": return `desasignó a ${oldValue || ""}`;
+    case "COMMENT_ADDED": return "comentó en";
+    case "ATTACHMENT_ADDED": return "subió archivo en";
+    case "DUE_DATE_CHANGED": return "cambió la fecha límite de";
+    case "PRIORITY_CHANGED": return `cambió prioridad a ${newValue || ""}`;
+    case "DESCRIPTION_UPDATED": return "actualizó la descripción de";
+    default: return "actualizó";
+  }
+};
 
 export function ProjectActivityTab({ projectId }: ProjectActivityTabProps) {
-  const activities = getActivityData(projectId);
+  const [activities, setActivities] = useState<ActivityRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Group activities by date
-  const groupedActivities = activities.reduce((groups, activity) => {
-    const date = format(new Date(activity.timestamp), "yyyy-MM-dd");
-    if (!groups[date]) {
-      groups[date] = [];
+  const fetchActivities = useCallback(async () => {
+    const supabase = createClient();
+
+    // Get task IDs for this project
+    const { data: taskIds } = await supabase
+      .from("Task")
+      .select("id")
+      .eq("listId", projectId);
+
+    if (!taskIds || taskIds.length === 0) {
+      setActivities([]);
+      setLoading(false);
+      return;
     }
+
+    const ids = taskIds.map((t) => t.id);
+
+    const { data } = await supabase
+      .from("Activity")
+      .select("id, type, field, oldValue, newValue, createdAt, User:userId(name, avatarUrl), Task:taskId(title)")
+      .in("taskId", ids)
+      .order("createdAt", { ascending: false })
+      .limit(20);
+
+    const parsed: ActivityRow[] = (data || []).map((a: any) => ({
+      ...a,
+      user: Array.isArray(a.User) ? a.User[0] : a.User,
+      task: Array.isArray(a.Task) ? a.Task[0] : a.Task,
+    }));
+
+    setActivities(parsed);
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Group by date
+  const grouped = activities.reduce((groups, activity) => {
+    const date = format(new Date(activity.createdAt), "yyyy-MM-dd");
+    if (!groups[date]) groups[date] = [];
     groups[date].push(activity);
     return groups;
-  }, {} as Record<string, typeof activities>);
+  }, {} as Record<string, ActivityRow[]>);
 
   return (
     <div className="space-y-6">
-      {/* Add Comment */}
-      <Card className="p-4">
-        <Textarea
-          placeholder="Write a comment or update..."
-          rows={3}
-          className="resize-none mb-3"
-        />
-        <div className="flex justify-end">
-          <Button>Post Update</Button>
-        </div>
-      </Card>
-
-      {/* Activity Feed */}
       <Card className="p-5">
-        <h3 className="font-semibold text-foreground mb-6">Recent Activity</h3>
+        <h3 className="font-semibold text-foreground mb-6">Actividad Reciente</h3>
 
-        <div className="relative">
-          {/* Timeline line */}
-          <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-border" />
+        {activities.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Sin actividad registrada
+          </p>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-border" />
 
-          <div className="space-y-6">
-            {Object.entries(groupedActivities).map(([date, dayActivities]) => (
-              <div key={date}>
-                {/* Date Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center relative z-10">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {format(new Date(date), "EEEE, MMMM d")}
-                  </span>
-                </div>
-
-                {/* Activities for this date */}
-                {dayActivities.map((activity) => {
-                  const Icon = activity.icon;
-                  return (
-                    <div
-                      key={activity.id}
-                      className="relative flex gap-4 pb-6 last:pb-0"
-                    >
-                      {/* Icon */}
-                      <div
-                        className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full ${activity.iconBg}`}
-                      >
-                        <Icon className={`h-4 w-4 ${activity.iconColor}`} />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Avatar className="h-5 w-5">
-                            <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
-                              {activity.user.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-foreground text-sm">
-                            {activity.user.name}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {activity.action}
-                          </span>
-                          <span className="font-medium text-foreground text-sm">
-                            {activity.target}
-                          </span>
-                        </div>
-
-                        {/* Comment content */}
-                        {activity.content && (
-                          <div className="mt-2 rounded-lg bg-secondary p-3">
-                            <p className="text-sm text-foreground">
-                              {activity.content}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Timestamp */}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(activity.timestamp), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
+            <div className="space-y-6">
+              {Object.entries(grouped).map(([date, dayActivities]) => (
+                <div key={date}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center relative z-10">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
                     </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {format(new Date(date), "EEEE, MMMM d")}
+                    </span>
+                  </div>
 
-        {/* Load More */}
-        <div className="mt-6 text-center">
-          <Button variant="outline">Load More Activity</Button>
-        </div>
+                  {dayActivities.map((activity) => {
+                    const { icon: Icon, color, bg } = getActivityIcon(activity.type);
+                    const userName = activity.user?.name || "Usuario";
+                    const initials = userName.split(" ").map((n) => n[0]).join("").slice(0, 2);
+
+                    return (
+                      <div key={activity.id} className="relative flex gap-4 pb-6 last:pb-0">
+                        <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full ${bg}`}>
+                          <Icon className={`h-4 w-4 ${color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Avatar className="h-5 w-5">
+                              <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-foreground text-sm">{userName}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {getActionText(activity.type, activity.field, activity.oldValue, activity.newValue)}
+                            </span>
+                            {activity.task && (
+                              <span className="font-medium text-foreground text-sm">
+                                {activity.task.title}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

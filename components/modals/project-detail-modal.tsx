@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Circle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
+import { createClient } from "@/lib/supabase/client";
 import {
   formatCurrency,
   formatDate,
@@ -44,41 +46,143 @@ import {
   cn,
 } from "@/lib/utils";
 
-const priorityColors = {
-  low: "bg-muted text-muted-foreground",
-  medium: "bg-studio-info/20 text-studio-info",
-  high: "bg-studio-warning/20 text-studio-warning",
-  urgent: "bg-studio-error/20 text-studio-error",
+const priorityColors: Record<string, string> = {
+  LOW: "bg-muted text-muted-foreground",
+  NORMAL: "bg-studio-info/20 text-studio-info",
+  HIGH: "bg-studio-warning/20 text-studio-warning",
+  URGENT: "bg-studio-error/20 text-studio-error",
 };
+
+interface ProjectData {
+  id: string;
+  name: string;
+  description: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  space: { id: string; name: string; color: string } | null;
+}
+
+interface TaskRow {
+  id: string;
+  title: string;
+  priority: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  estimatedHours: number | null;
+  status: { id: string; name: string; type: string } | null;
+  assignments: { user: { id: string; name: string; avatarUrl: string | null } }[];
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
 
 export function ProjectDetailModal() {
   const {
     activeModal,
     modalData,
     closeModal,
-    projects,
-    tasks,
-    clients,
-    deleteProject,
     openModal,
   } = useAppStore();
   const { addToast } = useToast();
 
   const isOpen = activeModal === "project-detail";
-  const project = projects.find((p) => p.id === modalData?.projectId);
-  const projectTasks = tasks.filter((t) => t.projectId === project?.id);
-  const client = project ? clients.find((c) => c.id === project.clientId) : null;
+  const projectId = modalData?.projectId;
 
-  if (!project) return null;
+  const [loading, setLoading] = useState(true);
+  const [project, setProject] = useState<ProjectData | null>(null);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [totalHoursLogged, setTotalHoursLogged] = useState(0);
+
+  const fetchProject = useCallback(async () => {
+    if (!projectId) return;
+    setLoading(true);
+    const supabase = createClient();
+
+    // Fetch project (List) with Space
+    const { data: listData } = await supabase
+      .from("List")
+      .select("id, name, description, startDate, endDate, createdAt, Space:spaceId(id, name, color)")
+      .eq("id", projectId)
+      .single();
+
+    if (!listData) {
+      setLoading(false);
+      return;
+    }
+
+    const spaceRaw = listData.Space;
+    const space = Array.isArray(spaceRaw) ? spaceRaw[0] : spaceRaw;
+    setProject({ ...listData, space } as ProjectData);
+
+    // Fetch tasks with status and assignments
+    const { data: taskData } = await supabase
+      .from("Task")
+      .select("id, title, priority, dueDate, completedAt, estimatedHours, Status:statusId(id, name, type), TaskAssignment(User:userId(id, name, avatarUrl))")
+      .eq("listId", projectId)
+      .order("createdAt", { ascending: false });
+
+    const parsedTasks: TaskRow[] = (taskData || []).map((t: any) => {
+      const status = Array.isArray(t.Status) ? t.Status[0] : t.Status;
+      const assignments = (t.TaskAssignment || []).map((a: any) => {
+        const user = Array.isArray(a.User) ? a.User[0] : a.User;
+        return { user };
+      });
+      return { ...t, status, assignments };
+    });
+    setTasks(parsedTasks);
+
+    // Extract unique team members
+    const memberMap = new Map<string, TeamMember>();
+    parsedTasks.forEach((t) => {
+      t.assignments.forEach((a) => {
+        if (a.user && !memberMap.has(a.user.id)) {
+          memberMap.set(a.user.id, a.user);
+        }
+      });
+    });
+    setTeam(Array.from(memberMap.values()));
+
+    // Fetch total hours logged
+    const { data: timeData } = await supabase
+      .from("TimeEntry")
+      .select("hours")
+      .in("taskId", (taskData || []).map((t: any) => t.id));
+
+    const totalHours = (timeData || []).reduce((acc: number, te: any) => acc + (te.hours || 0), 0);
+    setTotalHoursLogged(Math.round(totalHours * 10) / 10);
+
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (isOpen && projectId) {
+      fetchProject();
+    }
+  }, [isOpen, projectId, fetchProject]);
 
   const handleClose = () => {
     closeModal();
+    setProject(null);
+    setTasks([]);
+    setTeam([]);
   };
 
-  const handleDelete = () => {
-    deleteProject(project.id);
-    addToast({ title: "Project deleted", type: "success" });
-    handleClose();
+  const handleDelete = async () => {
+    if (!projectId) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("List").delete().eq("id", projectId);
+    if (!error) {
+      addToast({ title: "Proyecto eliminado", type: "success" });
+      window.dispatchEvent(new CustomEvent("dcflow:refresh"));
+      handleClose();
+    } else {
+      addToast({ title: "Error al eliminar", type: "error" });
+    }
   };
 
   const handleOpenTask = (taskId: string) => {
@@ -86,15 +190,33 @@ export function ProjectDetailModal() {
     openModal("task-detail-v2", { taskId });
   };
 
-  const budgetUsed = Math.round((project.spent / project.budget) * 100);
+  if (!isOpen) return null;
 
-  // Task stats
-  const todoTasks = projectTasks.filter((t) => t.status === "todo").length;
-  const inProgressTasks = projectTasks.filter((t) => t.status === "in-progress").length;
-  const reviewTasks = projectTasks.filter((t) => t.status === "review").length;
-  const doneTasks = projectTasks.filter((t) => t.status === "done").length;
-  const totalHoursLogged = projectTasks.reduce((acc, t) => acc + t.loggedHours, 0);
-  const totalHoursEstimated = projectTasks.reduce((acc, t) => acc + t.estimatedHours, 0);
+  if (loading || !project) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden p-0">
+          <div className="flex items-center justify-center p-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Calculate stats from real tasks
+  const doneTasks = tasks.filter((t) => t.status?.type === "DONE").length;
+  const inProgressTasks = tasks.filter((t) => t.status?.type === "IN_PROGRESS").length;
+  const todoTasks = tasks.filter((t) => t.status?.type === "TODO").length;
+  const progress = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
+  const totalEstimated = tasks.reduce((acc, t) => acc + (t.estimatedHours || 0), 0);
+
+  const color = project.space?.color || "#6366f1";
+  const derivedStatus = doneTasks === tasks.length && tasks.length > 0
+    ? "completed"
+    : inProgressTasks > 0
+    ? "in-progress"
+    : "planning";
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -104,7 +226,7 @@ export function ProjectDetailModal() {
           <div className="flex items-center gap-4">
             <div
               className="flex h-12 w-12 items-center justify-center rounded-xl text-white text-xl font-semibold"
-              style={{ backgroundColor: project.color }}
+              style={{ backgroundColor: color }}
             >
               {project.name.charAt(0)}
             </div>
@@ -113,22 +235,16 @@ export function ProjectDetailModal() {
                 <h2 className="text-xl font-semibold text-foreground">
                   {project.name}
                 </h2>
-                <Badge className={getStatusColor(project.status)}>
-                  {project.status.replace("-", " ")}
+                <Badge className={getStatusColor(derivedStatus)}>
+                  {derivedStatus.replace("-", " ")}
                 </Badge>
               </div>
-              {client && (
-                <p className="text-sm text-muted-foreground">{client.company}</p>
+              {project.space && (
+                <p className="text-sm text-muted-foreground">{project.space.name}</p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/projects/${project.id}`}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Full View
-              </Link>
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -138,7 +254,7 @@ export function ProjectDetailModal() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Project
+                  Editar Proyecto
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -146,7 +262,7 @@ export function ProjectDetailModal() {
                   onClick={handleDelete}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Project
+                  Eliminar Proyecto
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -160,17 +276,17 @@ export function ProjectDetailModal() {
               <div className="rounded-lg bg-secondary p-4">
                 <p className="text-xs text-muted-foreground">Progreso</p>
                 <p className="text-2xl font-semibold text-foreground">
-                  {project.progress}%
+                  {progress}%
                 </p>
               </div>
               <div className="rounded-lg bg-secondary p-4">
-                <p className="text-xs text-muted-foreground">Budget Used</p>
+                <p className="text-xs text-muted-foreground">Tareas</p>
                 <p className="text-2xl font-semibold text-foreground">
-                  {budgetUsed}%
+                  {tasks.length}
                 </p>
               </div>
               <div className="rounded-lg bg-secondary p-4">
-                <p className="text-xs text-muted-foreground">Hours Logged</p>
+                <p className="text-xs text-muted-foreground">Horas Registradas</p>
                 <p className="text-2xl font-semibold text-foreground">
                   {totalHoursLogged}h
                 </p>
@@ -178,7 +294,7 @@ export function ProjectDetailModal() {
               <div className="rounded-lg bg-secondary p-4">
                 <p className="text-xs text-muted-foreground">Fecha Límite</p>
                 <p className="text-lg font-semibold text-foreground">
-                  {formatDate(project.dueDate)}
+                  {project.endDate ? formatDate(project.endDate) : "—"}
                 </p>
               </div>
             </div>
@@ -186,15 +302,15 @@ export function ProjectDetailModal() {
             {/* Progress Bar */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Project Progress</span>
+                <span className="text-muted-foreground">Progreso del Proyecto</span>
                 <span className="text-foreground font-medium">
-                  {project.progress}%
+                  {progress}%
                 </span>
               </div>
               <Progress
-                value={project.progress}
+                value={progress}
                 className="h-2"
-                indicatorClassName={getProgressColor(project.progress)}
+                indicatorClassName={getProgressColor(progress)}
               />
             </div>
 
@@ -204,7 +320,7 @@ export function ProjectDetailModal() {
             <div className="grid grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground">Details</h3>
+                <h3 className="text-sm font-semibold text-foreground">Detalles</h3>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -214,7 +330,9 @@ export function ProjectDetailModal() {
                     <div>
                       <p className="text-xs text-muted-foreground">Fecha de Inicio</p>
                       <p className="text-sm font-medium text-foreground">
-                        {format(new Date(project.createdAt), "PPP")}
+                        {project.startDate
+                          ? format(new Date(project.startDate), "PPP")
+                          : format(new Date(project.createdAt), "PPP")}
                       </p>
                     </div>
                   </div>
@@ -226,19 +344,9 @@ export function ProjectDetailModal() {
                     <div>
                       <p className="text-xs text-muted-foreground">Fecha Límite</p>
                       <p className="text-sm font-medium text-foreground">
-                        {format(new Date(project.dueDate), "PPP")}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-studio-success/20">
-                      <DollarSign className="h-4 w-4 text-studio-success" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Presupuesto</p>
-                      <p className="text-sm font-medium text-foreground">
-                        {formatCurrency(project.spent)} / {formatCurrency(project.budget)}
+                        {project.endDate
+                          ? format(new Date(project.endDate), "PPP")
+                          : "Sin fecha límite"}
                       </p>
                     </div>
                   </div>
@@ -248,9 +356,9 @@ export function ProjectDetailModal() {
                       <Clock className="h-4 w-4 text-studio-info" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Hours</p>
+                      <p className="text-xs text-muted-foreground">Horas</p>
                       <p className="text-sm font-medium text-foreground">
-                        {totalHoursLogged}h / {totalHoursEstimated}h estimated
+                        {totalHoursLogged}h / {totalEstimated}h estimadas
                       </p>
                     </div>
                   </div>
@@ -259,28 +367,28 @@ export function ProjectDetailModal() {
 
               {/* Right Column - Team */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground">Team ({project.team.length})</h3>
+                <h3 className="text-sm font-semibold text-foreground">Equipo ({team.length})</h3>
                 <div className="space-y-2">
-                  {project.team.map((member) => (
+                  {team.map((member) => (
                     <div
                       key={member.id}
                       className="flex items-center gap-3 rounded-lg p-2 hover:bg-secondary transition-colors"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                          {member.avatar}
+                          {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
                           {member.name}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {member.role}
-                        </p>
                       </div>
                     </div>
                   ))}
+                  {team.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Sin miembros asignados</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -288,18 +396,21 @@ export function ProjectDetailModal() {
             <Separator />
 
             {/* Description */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">Descripción</h3>
-              <p className="text-sm text-muted-foreground">{project.description}</p>
-            </div>
-
-            <Separator />
+            {project.description && (
+              <>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">Descripción</h3>
+                  <p className="text-sm text-muted-foreground">{project.description}</p>
+                </div>
+                <Separator />
+              </>
+            )}
 
             {/* Tasks Summary */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground">
-                  Tasks ({projectTasks.length})
+                  Tareas ({tasks.length})
                 </h3>
                 <Button
                   variant="outline"
@@ -309,73 +420,74 @@ export function ProjectDetailModal() {
                     openModal("new-task-v2");
                   }}
                 >
-                  Add Task
+                  Agregar Tarea
                 </Button>
               </div>
 
               {/* Task Status Summary */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg border border-border p-3 text-center">
                   <p className="text-xl font-semibold text-foreground">{todoTasks}</p>
-                  <p className="text-xs text-muted-foreground">To Do</p>
+                  <p className="text-xs text-muted-foreground">Por Hacer</p>
                 </div>
                 <div className="rounded-lg border border-border p-3 text-center">
                   <p className="text-xl font-semibold text-studio-info">{inProgressTasks}</p>
-                  <p className="text-xs text-muted-foreground">In Progress</p>
-                </div>
-                <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-xl font-semibold text-studio-warning">{reviewTasks}</p>
-                  <p className="text-xs text-muted-foreground">Review</p>
+                  <p className="text-xs text-muted-foreground">En Progreso</p>
                 </div>
                 <div className="rounded-lg border border-border p-3 text-center">
                   <p className="text-xl font-semibold text-studio-success">{doneTasks}</p>
-                  <p className="text-xs text-muted-foreground">Done</p>
+                  <p className="text-xs text-muted-foreground">Completadas</p>
                 </div>
               </div>
 
               {/* Recent Tasks List */}
               <div className="space-y-2">
-                {projectTasks.slice(0, 5).map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-secondary/50 cursor-pointer transition-colors"
-                    onClick={() => handleOpenTask(task.id)}
-                  >
-                    <button className="text-muted-foreground">
-                      {task.status === "done" ? (
-                        <CheckCircle2 className="h-5 w-5 text-studio-success" />
-                      ) : (
-                        <Circle className="h-5 w-5" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={cn(
-                          "text-sm font-medium text-foreground truncate",
-                          task.status === "done" && "line-through opacity-60"
+                {tasks.slice(0, 5).map((task) => {
+                  const assignee = task.assignments[0]?.user;
+                  const isDone = task.status?.type === "DONE";
+
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-secondary/50 cursor-pointer transition-colors"
+                      onClick={() => handleOpenTask(task.id)}
+                    >
+                      <button className="text-muted-foreground">
+                        {isDone ? (
+                          <CheckCircle2 className="h-5 w-5 text-studio-success" />
+                        ) : (
+                          <Circle className="h-5 w-5" />
                         )}
-                      >
-                        {task.title}
-                      </p>
-                    </div>
-                    <Badge className={priorityColors[task.priority]} variant="secondary">
-                      {task.priority === "urgent" && (
-                        <AlertCircle className="h-3 w-3 mr-1" />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={cn(
+                            "text-sm font-medium text-foreground truncate",
+                            isDone && "line-through opacity-60"
+                          )}
+                        >
+                          {task.title}
+                        </p>
+                      </div>
+                      <Badge className={priorityColors[task.priority] || priorityColors.NORMAL} variant="secondary">
+                        {task.priority === "URGENT" && (
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {task.priority.toLowerCase()}
+                      </Badge>
+                      {assignee && (
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">
+                            {assignee.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
                       )}
-                      {task.priority}
-                    </Badge>
-                    {task.assignee && (
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[9px] bg-primary text-primary-foreground">
-                          {task.assignee.avatar}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  </div>
-                ))}
-                {projectTasks.length === 0 && (
+                    </div>
+                  );
+                })}
+                {tasks.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No tasks yet
+                    Sin tareas aún
                   </p>
                 )}
               </div>
