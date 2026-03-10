@@ -19,6 +19,13 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Shield,
     Users,
     FolderKanban,
@@ -33,6 +40,9 @@ import {
     ArchiveRestore,
     Plus,
     Edit3,
+    X,
+    AlertTriangle,
+    FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +52,8 @@ interface UserRow {
     email: string;
     role: string;
     isActive: boolean;
+    department: string | null;
+    userAreas: string[];
 }
 
 interface ChannelRow {
@@ -74,6 +86,7 @@ interface SpaceRow {
 interface ProjectRow {
     id: string;
     name: string;
+    folderName: string | null;
     spaceName: string;
     spaceColor: string;
     taskCount: number;
@@ -100,6 +113,12 @@ export default function AdminPage() {
     const [updatingUser, setUpdatingUser] = useState<string | null>(null);
     const [updatingChannel, setUpdatingChannel] = useState<string | null>(null);
     const [updatingSpace, setUpdatingSpace] = useState<string | null>(null);
+
+    // Deactivation modal state
+    const [deactivateUser, setDeactivateUser] = useState<UserRow | null>(null);
+    const [deactivateTaskCount, setDeactivateTaskCount] = useState(0);
+    const [deactivateTransferTo, setDeactivateTransferTo] = useState<string>("");
+    const [deactivateLoading, setDeactivateLoading] = useState(false);
 
     // Active tab
     const [activeSection, setActiveSection] = useState<"overview" | "clients" | "projects" | "members" | "channels">("overview");
@@ -138,7 +157,7 @@ export default function AdminPage() {
                 .select("id, type, field, oldValue, newValue, createdAt, user:User(name), task:Task(title)")
                 .order("createdAt", { ascending: false })
                 .limit(5),
-            supabase.from("User").select("id, name, email, role, isActive").order("name"),
+            supabase.from("User").select("id, name, email, role, isActive, department, userAreas").order("name"),
             supabase.from("Channel").select("id, name, slug, isArchived").order("name"),
             fetch("/api/spaces").then(r => r.json()),
         ]);
@@ -179,7 +198,7 @@ export default function AdminPage() {
             // Count projects per space
             const { data: listsData } = await supabase
                 .from("List")
-                .select("id, spaceId")
+                .select("id, name, spaceId, Folder(name)")
                 .in("spaceId", spaceIds);
 
             const projectsBySpace = new Map<string, number>();
@@ -233,10 +252,12 @@ export default function AdminPage() {
                 setProjects(
                     listsData.map((l: any) => {
                         const space = spaceMap.get(l.spaceId);
+                        const folder = Array.isArray(l.Folder) ? l.Folder[0] : l.Folder;
                         const counts = tasksByList.get(l.id) || { total: 0, done: 0 };
                         return {
                             id: l.id,
                             name: l.name || "—",
+                            folderName: folder?.name || null,
                             spaceName: space?.name || "—",
                             spaceColor: space?.color || "#666",
                             taskCount: counts.total,
@@ -337,6 +358,66 @@ export default function AdminPage() {
         }
     };
 
+    const openDeactivateModal = async (targetUser: UserRow) => {
+        setDeactivateUser(targetUser);
+        setDeactivateTransferTo("");
+        // Count active tasks assigned to this user
+        const supabase = createClient();
+        const { data: assignments } = await supabase
+            .from("TaskAssignment")
+            .select("taskId, Task!inner(id, Status!inner(type))")
+            .eq("userId", targetUser.id);
+        const activeTasks = (assignments || []).filter((a: any) => {
+            const status = Array.isArray(a.Task?.Status) ? a.Task.Status[0] : a.Task?.Status;
+            return status?.type !== "DONE";
+        });
+        setDeactivateTaskCount(activeTasks.length);
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivateUser) return;
+        setDeactivateLoading(true);
+        try {
+            const supabase = createClient();
+
+            // Transfer tasks if needed
+            if (deactivateTaskCount > 0 && deactivateTransferTo) {
+                // Get active task assignments for this user
+                const { data: assignments } = await supabase
+                    .from("TaskAssignment")
+                    .select("id, taskId, Task!inner(id, Status!inner(type))")
+                    .eq("userId", deactivateUser.id);
+                const activeAssignmentIds = (assignments || [])
+                    .filter((a: any) => {
+                        const status = Array.isArray(a.Task?.Status) ? a.Task.Status[0] : a.Task?.Status;
+                        return status?.type !== "DONE";
+                    })
+                    .map((a: any) => a.id);
+
+                if (activeAssignmentIds.length > 0) {
+                    await supabase
+                        .from("TaskAssignment")
+                        .update({ userId: deactivateTransferTo })
+                        .in("id", activeAssignmentIds);
+                }
+            }
+
+            // Deactivate user
+            await fetch(`/api/admin/users/${deactivateUser.id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isActive: false }),
+            });
+
+            setUsers((prev) => prev.map((u) => (u.id === deactivateUser.id ? { ...u, isActive: false } : u)));
+            setDeactivateUser(null);
+        } catch (err) {
+            console.error("Error deactivating user:", err);
+        } finally {
+            setDeactivateLoading(false);
+        }
+    };
+
     const activityLabel = (type: string) => {
         const map: Record<string, string> = {
             CREATED: "Tarea creada",
@@ -378,7 +459,7 @@ export default function AdminPage() {
         : ["MEMBER", "PM"];
 
     return (
-        <div className="flex h-full flex-col gap-6 overflow-auto">
+        <div className="flex h-full flex-col gap-6 min-h-0">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -415,7 +496,7 @@ export default function AdminPage() {
 
             {/* ═══ OVERVIEW ═══ */}
             {activeSection === "overview" && (
-                <>
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
                     {/* Stats Grid */}
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         {stats.map((stat) => {
@@ -494,20 +575,20 @@ export default function AdminPage() {
                             )}
                         </div>
                     </Card>
-                </>
+                </div>
             )}
 
             {/* ═══ CLIENTS ═══ */}
             {activeSection === "clients" && (
-                <Card className="p-0 overflow-hidden">
-                    <div className="flex items-center justify-between p-5 border-b">
+                <Card className="p-0 overflow-hidden flex-1 min-h-0 flex flex-col">
+                    <div className="flex items-center justify-between p-5 border-b shrink-0">
                         <h3 className="font-semibold text-foreground">Clientes ({spaces.length})</h3>
                         <Button size="sm" onClick={() => openModal("new-client")}>
                             <Plus className="h-4 w-4 mr-1" />
                             Nuevo Cliente
                         </Button>
                     </div>
-                    <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+                    <div className="overflow-y-auto flex-1">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -582,174 +663,215 @@ export default function AdminPage() {
 
             {/* ═══ PROJECTS ═══ */}
             {activeSection === "projects" && (
-                <Card className="p-0 overflow-hidden">
-                    <div className="flex items-center justify-between p-5 border-b">
+                <Card className="p-0 overflow-hidden flex-1 min-h-0 flex flex-col">
+                    <div className="flex items-center justify-between p-5 border-b shrink-0">
                         <h3 className="font-semibold text-foreground">Proyectos ({projects.length})</h3>
                         <Button size="sm" onClick={() => openModal("new-project")}>
                             <Plus className="h-4 w-4 mr-1" />
                             Nuevo Proyecto
                         </Button>
                     </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="pl-5">Proyecto</TableHead>
-                                <TableHead>Cliente</TableHead>
-                                <TableHead className="text-center">Tareas</TableHead>
-                                <TableHead>Avance</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {projects.map((p) => (
-                                <TableRow key={p.id}>
-                                    <TableCell className="pl-5 font-medium">{p.name}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded" style={{ backgroundColor: p.spaceColor }} />
-                                            <span className="text-sm">{p.spaceName}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {p.doneCount}/{p.taskCount}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                                                <div
-                                                    className={cn(
-                                                        "h-full rounded-full",
-                                                        p.progress === 100 ? "bg-emerald-500" : p.progress > 50 ? "bg-blue-500" : "bg-amber-500"
-                                                    )}
-                                                    style={{ width: `${p.progress}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-xs text-muted-foreground w-8">{p.progress}%</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {projects.length === 0 && (
+                    <div className="overflow-y-auto flex-1">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                        No hay proyectos
-                                    </TableCell>
+                                    <TableHead className="pl-5">Proyecto</TableHead>
+                                    <TableHead>Cliente</TableHead>
+                                    <TableHead className="text-center">Tareas</TableHead>
+                                    <TableHead>Avance</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {projects.map((p) => (
+                                    <TableRow key={p.id}>
+                                        <TableCell className="pl-5">
+                                            <div className="min-w-0">
+                                                <span className="font-medium">{p.name}</span>
+                                                {p.folderName && (
+                                                    <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                                        <FolderOpen className="h-3 w-3" />
+                                                        {p.folderName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2.5 h-2.5 rounded" style={{ backgroundColor: p.spaceColor }} />
+                                                <span className="text-sm">{p.spaceName}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {p.doneCount}/{p.taskCount}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+                                                    <div
+                                                        className={cn(
+                                                            "h-full rounded-full",
+                                                            p.progress === 100 ? "bg-emerald-500" : p.progress > 50 ? "bg-blue-500" : "bg-amber-500"
+                                                        )}
+                                                        style={{ width: `${p.progress}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-muted-foreground w-8">{p.progress}%</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {projects.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                            No hay proyectos
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </Card>
             )}
 
             {/* ═══ MEMBERS ═══ */}
             {activeSection === "members" && (
-                <Card className="p-0 overflow-hidden">
-                    <div className="flex items-center justify-between p-5 border-b">
+                <Card className="p-0 overflow-hidden flex-1 min-h-0 flex flex-col">
+                    <div className="flex items-center justify-between p-5 border-b shrink-0">
                         <h3 className="font-semibold text-foreground">Miembros ({users.length})</h3>
                         <Button size="sm" onClick={() => openModal("new-member")}>
                             <Plus className="h-4 w-4 mr-1" />
                             Invitar
                         </Button>
                     </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="pl-5">Nombre</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Rol</TableHead>
-                                <TableHead>Estado</TableHead>
-                                <TableHead className="text-right pr-5">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {users.map((u) => {
-                                const isSelf = u.id === user?.id;
-                                const isSA = u.role === "SUPER_ADMIN";
-                                const canModify = isSuperAdmin && !isSelf && !isSA;
+                    <div className="overflow-y-auto flex-1">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="pl-5">Nombre</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Rol</TableHead>
+                                    <TableHead>Cargo</TableHead>
+                                    <TableHead>Área</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead className="text-right pr-5">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {users.map((u) => {
+                                    const isSelf = u.id === user?.id;
+                                    const isSA = u.role === "SUPER_ADMIN";
+                                    const canModify = isSuperAdmin && !isSelf && !isSA;
 
-                                return (
-                                    <TableRow key={u.id}>
-                                        <TableCell className="pl-5 font-medium">{u.name}</TableCell>
-                                        <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant={isSA ? "default" : u.role === "ADMIN" ? "secondary" : "outline"}
-                                                className="text-xs"
-                                            >
-                                                {u.role}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {u.isActive ? (
-                                                <Badge variant="outline" className="text-xs text-green-600 border-green-300">Activo</Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-xs text-red-500 border-red-300">Inactivo</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right pr-5">
-                                            <div className="flex items-center justify-end gap-1">
-                                                {canModify && (
-                                                    <>
-                                                        {roleOptions
-                                                            .filter((r) => r !== u.role)
-                                                            .slice(0, 1)
-                                                            .map((nextRole) => (
+                                    return (
+                                        <TableRow key={u.id}>
+                                            <TableCell className="pl-5 font-medium">{u.name}</TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={isSA ? "default" : u.role === "ADMIN" ? "secondary" : "outline"}
+                                                    className="text-xs"
+                                                >
+                                                    {u.role}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">
+                                                {u.department || "—"}
+                                            </TableCell>
+                                            <TableCell>
+                                                {u.userAreas && u.userAreas.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {u.userAreas.map((area) => (
+                                                            <Badge key={area} variant="secondary" className="text-[10px]">
+                                                                {area}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {u.isActive ? (
+                                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">Activo</Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-xs text-red-500 border-red-300">Inactivo</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-5">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {canModify && (
+                                                        <>
+                                                            {roleOptions
+                                                                .filter((r) => r !== u.role)
+                                                                .slice(0, 1)
+                                                                .map((nextRole) => (
+                                                                    <Button
+                                                                        key={nextRole}
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-7 text-xs"
+                                                                        disabled={updatingUser === u.id}
+                                                                        onClick={() => handleRoleChange(u.id, nextRole)}
+                                                                    >
+                                                                        {updatingUser === u.id ? (
+                                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                                        ) : (
+                                                                            `→ ${nextRole}`
+                                                                        )}
+                                                                    </Button>
+                                                                ))}
+                                                            {u.isActive ? (
                                                                 <Button
-                                                                    key={nextRole}
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    className="h-7 text-xs"
+                                                                    className="h-7 text-xs text-red-500 hover:text-red-600"
                                                                     disabled={updatingUser === u.id}
-                                                                    onClick={() => handleRoleChange(u.id, nextRole)}
+                                                                    onClick={() => openDeactivateModal(u)}
+                                                                >
+                                                                    <UserX className="h-3.5 w-3.5 mr-1" />
+                                                                    Desactivar
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 text-xs text-green-500 hover:text-green-600"
+                                                                    disabled={updatingUser === u.id}
+                                                                    onClick={() => handleStatusToggle(u.id, u.isActive)}
                                                                 >
                                                                     {updatingUser === u.id ? (
                                                                         <Loader2 className="h-3 w-3 animate-spin" />
                                                                     ) : (
-                                                                        `→ ${nextRole}`
+                                                                        <><UserCheck className="h-3.5 w-3.5 mr-1" />Activar</>
                                                                     )}
                                                                 </Button>
-                                                            ))}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className={cn(
-                                                                "h-7 text-xs",
-                                                                u.isActive ? "text-red-500 hover:text-red-600" : "text-green-500 hover:text-green-600"
                                                             )}
-                                                            disabled={updatingUser === u.id}
-                                                            onClick={() => handleStatusToggle(u.id, u.isActive)}
-                                                        >
-                                                            {updatingUser === u.id ? (
-                                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                                            ) : u.isActive ? (
-                                                                <UserX className="h-3.5 w-3.5" />
-                                                            ) : (
-                                                                <UserCheck className="h-3.5 w-3.5" />
-                                                            )}
-                                                        </Button>
-                                                    </>
-                                                )}
-                                                {isSelf && <span className="text-xs text-muted-foreground">(tú)</span>}
-                                                {isSA && !isSelf && <span className="text-xs text-muted-foreground">protegido</span>}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
+                                                        </>
+                                                    )}
+                                                    {isSelf && <span className="text-xs text-muted-foreground">(tú)</span>}
+                                                    {isSA && !isSelf && <span className="text-xs text-muted-foreground">protegido</span>}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </Card>
             )}
 
             {/* ═══ CHANNELS ═══ */}
             {activeSection === "channels" && (
-                <Card className="p-0 overflow-hidden">
-                    <div className="flex items-center justify-between p-5 border-b">
+                <Card className="p-0 overflow-hidden flex-1 min-h-0 flex flex-col">
+                    <div className="flex items-center justify-between p-5 border-b shrink-0">
                         <h3 className="font-semibold text-foreground">Canales ({channels.length})</h3>
                         <Button size="sm" onClick={() => openModal("new-channel")}>
                             <Plus className="h-4 w-4 mr-1" />
                             Nuevo Canal
                         </Button>
                     </div>
+                    <div className="overflow-y-auto flex-1">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -806,7 +928,80 @@ export default function AdminPage() {
                             )}
                         </TableBody>
                     </Table>
+                    </div>
                 </Card>
+            )}
+
+            {/* ═══ DEACTIVATE MEMBER MODAL ═══ */}
+            {deactivateUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => !deactivateLoading && setDeactivateUser(null)} />
+                    <div className="relative bg-background rounded-xl shadow-xl border p-6 w-full max-w-md mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                                Desactivar Miembro
+                            </h2>
+                            <Button variant="ghost" size="icon" onClick={() => !deactivateLoading && setDeactivateUser(null)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-4">
+                            ¿Desactivar a <span className="font-medium text-foreground">{deactivateUser.name}</span>?
+                        </p>
+
+                        {deactivateTaskCount > 0 ? (
+                            <div className="space-y-3 mb-5">
+                                <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
+                                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                                        Este miembro tiene <strong>{deactivateTaskCount} tarea{deactivateTaskCount !== 1 ? "s" : ""} activa{deactivateTaskCount !== 1 ? "s" : ""}</strong> asignada{deactivateTaskCount !== 1 ? "s" : ""}.
+                                        Selecciona a quién traspasar antes de desactivar.
+                                    </p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium">Traspasar tareas a:</label>
+                                    <Select value={deactivateTransferTo} onValueChange={setDeactivateTransferTo}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccionar miembro..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {users
+                                                .filter((u) => u.id !== deactivateUser.id && u.isActive)
+                                                .map((u) => (
+                                                    <SelectItem key={u.id} value={u.id}>
+                                                        {u.name} ({u.role})
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground mb-5">
+                                No tiene tareas activas asignadas. Se desactivará directamente.
+                            </p>
+                        )}
+
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" disabled={deactivateLoading} onClick={() => setDeactivateUser(null)}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                disabled={deactivateLoading || (deactivateTaskCount > 0 && !deactivateTransferTo)}
+                                onClick={confirmDeactivate}
+                            >
+                                {deactivateLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : (
+                                    <UserX className="h-4 w-4 mr-2" />
+                                )}
+                                Desactivar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
