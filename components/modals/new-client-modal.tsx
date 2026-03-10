@@ -33,10 +33,22 @@ const PRESET_COLORS = [
   "#2C3E50", "#E91E63", "#FF5722", "#607D8B",
 ];
 
+const SOW_SERVICES = [
+  'Estrategia', 'Cuentas', 'Creatividad', 'Dise\u00f1o',
+  'Social Media', 'Producci\u00f3n', 'PR/Comunicaciones', 'Media/Pauta',
+];
+
+const SERVICE_COLORS: Record<string, string> = {
+  'Estrategia': '#6366f1', 'Cuentas': '#f59e0b', 'Creatividad': '#ec4899',
+  'Dise\u00f1o': '#8b5cf6', 'Social Media': '#06b6d4', 'Producci\u00f3n': '#22c55e',
+  'PR/Comunicaciones': '#f97316', 'Media/Pauta': '#ef4444',
+};
+
 const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   color: z.string().min(1, "Selecciona un color"),
   accountManagerId: z.string().optional(),
+  services: z.array(z.string()).optional().default([]),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -60,7 +72,7 @@ export function NewClientModal() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", color: PRESET_COLORS[0], accountManagerId: "" },
+    defaultValues: { name: "", color: PRESET_COLORS[0], accountManagerId: "", services: [] },
   });
 
   const selectedColor = watch("color");
@@ -129,6 +141,18 @@ export function NewClientModal() {
       });
     }
 
+    // Create SOW folders
+    for (const service of data.services || []) {
+      await supabase.from("Folder").insert({
+        id: crypto.randomUUID(),
+        name: service,
+        spaceId,
+        color: SERVICE_COLORS[service] || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
     addToast({ title: "Cliente creado", description: `${data.name} fue añadido.`, type: "success" });
     window.dispatchEvent(new CustomEvent("dcflow:clients-refresh"));
     handleClose();
@@ -136,7 +160,7 @@ export function NewClientModal() {
 
   return (
     <Dialog open onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Nuevo Cliente</DialogTitle>
         </DialogHeader>
@@ -176,6 +200,47 @@ export function NewClientModal() {
                   aria-label={color}
                 />
               ))}
+            </div>
+          </div>
+
+          {/* SOW Services */}
+          <div className="space-y-2">
+            <Label>Servicios SOW</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {SOW_SERVICES.map((service) => {
+                const selected = (watch("services") || []).includes(service);
+                return (
+                  <label
+                    key={service}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer transition-colors",
+                      selected
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border hover:bg-accent"
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={selected}
+                      onChange={() => {
+                        const current = watch("services") || [];
+                        setValue(
+                          "services",
+                          selected
+                            ? current.filter((s: string) => s !== service)
+                            : [...current, service],
+                        );
+                      }}
+                    />
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: SERVICE_COLORS[service] }}
+                    />
+                    {service}
+                  </label>
+                );
+              })}
             </div>
           </div>
 

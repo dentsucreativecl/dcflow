@@ -32,6 +32,7 @@ import {
     Archive,
     ArchiveRestore,
     Plus,
+    Edit3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -506,64 +507,76 @@ export default function AdminPage() {
                             Nuevo Cliente
                         </Button>
                     </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="pl-5">Cliente</TableHead>
-                                <TableHead className="text-center">Proyectos</TableHead>
-                                <TableHead className="text-center">Miembros</TableHead>
-                                <TableHead className="text-center">Estado</TableHead>
-                                <TableHead className="text-right pr-5">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {spaces.map((s) => (
-                                <TableRow key={s.id}>
-                                    <TableCell className="pl-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-3 h-3 rounded" style={{ backgroundColor: s.color }} />
-                                            <span className={cn("font-medium", s.isArchived && "line-through text-muted-foreground")}>
-                                                {s.name}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">{s.projectCount}</TableCell>
-                                    <TableCell className="text-center">{s.memberCount}</TableCell>
-                                    <TableCell className="text-center">
-                                        {s.isArchived ? (
-                                            <Badge variant="secondary" className="text-xs">Archivado</Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="text-xs text-green-600 border-green-300">Activo</Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right pr-5">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 text-xs"
-                                            disabled={updatingSpace === s.id}
-                                            onClick={() => handleArchiveSpace(s.id, s.isArchived)}
-                                        >
-                                            {updatingSpace === s.id ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : s.isArchived ? (
-                                                <><ArchiveRestore className="h-3 w-3 mr-1" />Restaurar</>
-                                            ) : (
-                                                <><Archive className="h-3 w-3 mr-1" />Archivar</>
-                                            )}
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {spaces.length === 0 && (
+                    <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                        No hay clientes
-                                    </TableCell>
+                                    <TableHead className="pl-5">Cliente</TableHead>
+                                    <TableHead className="text-center">Proyectos</TableHead>
+                                    <TableHead className="text-center">Miembros</TableHead>
+                                    <TableHead className="text-center">Estado</TableHead>
+                                    <TableHead className="text-right pr-5">Acciones</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {spaces.map((s) => (
+                                    <TableRow key={s.id}>
+                                        <TableCell className="pl-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-3 h-3 rounded" style={{ backgroundColor: s.color }} />
+                                                <span className={cn("font-medium", s.isArchived && "line-through text-muted-foreground")}>
+                                                    {s.name}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">{s.projectCount}</TableCell>
+                                        <TableCell className="text-center">{s.memberCount}</TableCell>
+                                        <TableCell className="text-center">
+                                            {s.isArchived ? (
+                                                <Badge variant="secondary" className="text-xs">Archivado</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-xs text-green-600 border-green-300">Activo</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right pr-5">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs"
+                                                    onClick={() => openModal("edit-client", { clientId: s.id })}
+                                                >
+                                                    <Edit3 className="h-3 w-3 mr-1" />Editar
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs"
+                                                    disabled={updatingSpace === s.id}
+                                                    onClick={() => handleArchiveSpace(s.id, s.isArchived)}
+                                                >
+                                                    {updatingSpace === s.id ? (
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                    ) : s.isArchived ? (
+                                                        <><ArchiveRestore className="h-3 w-3 mr-1" />Restaurar</>
+                                                    ) : (
+                                                        <><Archive className="h-3 w-3 mr-1" />Archivar</>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {spaces.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                            No hay clientes
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </Card>
             )}
 

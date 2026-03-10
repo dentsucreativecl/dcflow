@@ -28,6 +28,7 @@ export type ModalType =
   | "bulk-status-change"
   | "bulk-assign"
   | "new-channel"
+  | "edit-client"
   | null;
 
 interface ModalData {

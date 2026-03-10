@@ -11,7 +11,9 @@
     "db:seed-real": "tsx prisma/seed-real.ts",
     "pw:setup": "playwright test --project=setup",
     "pw:test": "playwright test",
-    "pw:ui": "playwright test --ui"
+    "pw:ui": "playwright test --ui",
+    "seed:excel": "tsx scripts/seed-from-excel.ts",
+    "seed:channels": "tsx scripts/seed-channel-members.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed-supabase.ts"

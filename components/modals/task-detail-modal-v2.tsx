@@ -1002,6 +1002,7 @@ export function TaskDetailModalV2() {
 
             const content = newComment.trim() || (attachments ? `📎 ${attachments[0].name}` : "");
 
+            const now = new Date().toISOString();
             const { data, error } = await supabase
                 .from("Comment")
                 .insert({
@@ -1010,7 +1011,8 @@ export function TaskDetailModalV2() {
                     userId: user.id,
                     content,
                     attachments: attachments || undefined,
-                    updatedAt: new Date().toISOString(),
+                    createdAt: now,
+                    updatedAt: now,
                 })
                 .select("id, content, attachments, createdAt")
                 .single();
@@ -2165,10 +2167,10 @@ export function TaskDetailModalV2() {
                                                             }
                                                         }}
                                                     />
-                                                    <Button size="icon" variant="ghost" title="Adjuntar archivo" onClick={() => commentFileRef.current?.click()}>
+                                                    <Button type="button" size="icon" variant="ghost" title="Adjuntar archivo" onClick={() => commentFileRef.current?.click()}>
                                                         <Paperclip className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" onClick={handleAddComment} disabled={!newComment.trim() && !commentAttachment}>
+                                                    <Button type="button" size="icon" onClick={handleAddComment} disabled={!newComment.trim() && !commentAttachment}>
                                                         <Send className="h-4 w-4" />
                                                     </Button>
                                                 </div>
