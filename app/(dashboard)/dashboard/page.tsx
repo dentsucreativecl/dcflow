@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Folder, CheckSquare, Users, Clock, Loader2,
-  ChevronDown, ChevronRight, List as ListIcon, LayoutGrid, Search,
+  ChevronDown, ChevronRight, List as ListIcon, LayoutGrid,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { QuickAccessCard } from "@/components/features/quick-access-card";
@@ -34,7 +34,7 @@ export default function DashboardPage() {
   const [allSpaces, setAllSpaces] = useState<Array<{ value: string; label: string; count: number }>>([]);
   const [collapsed, setCollapsed] = useState<Set<DateGroup>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>("grouped");
-  const [searchQuery, setSearchQuery] = useState("");
+
   const [clientFilter, setClientFilter] = useState<string[]>([]);
   const [projectFilter, setProjectFilter] = useState<string[]>([]);
 
@@ -132,9 +132,7 @@ export default function DashboardPage() {
     return tasks.filter(t => {
       const statusType = t.status?.type?.toUpperCase();
       if (statusType === "DONE" || t.completedAt) return false;
-      if (searchQuery) {
-        if (!t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      }
+
       if (clientFilter.length > 0) {
         const spaceName = (t.list?.space as Record<string, unknown> | null)?.name as string | undefined;
         if (!spaceName || !clientFilter.includes(spaceName)) return false;
@@ -144,7 +142,7 @@ export default function DashboardPage() {
       }
       return true;
     });
-  }, [tasks, searchQuery, clientFilter, projectFilter]);
+  }, [tasks, clientFilter, projectFilter]);
 
   const groups = useMemo(() => groupTasksByDate(filteredTasks), [filteredTasks]);
 
@@ -161,7 +159,7 @@ export default function DashboardPage() {
     });
   };
 
-  const hasFilters = searchQuery || clientFilter.length > 0 || projectFilter.length > 0;
+  const hasFilters = clientFilter.length > 0 || projectFilter.length > 0;
 
   if (loading) {
     return (
@@ -201,16 +199,6 @@ export default function DashboardPage() {
           {/* Toolbar */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar tarea..."
-                  className="w-[200px] bg-card pl-9 h-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
               {/* Client filter */}
               <FilterDropdown
                 label="Cliente"
@@ -228,7 +216,7 @@ export default function DashboardPage() {
               {hasFilters && (
                 <button
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => { setSearchQuery(""); setClientFilter([]); setProjectFilter([]); }}
+                  onClick={() => { setClientFilter([]); setProjectFilter([]); }}
                 >
                   Limpiar
                 </button>

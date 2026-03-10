@@ -219,8 +219,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
     return (
         <div className={cn("flex flex-col h-full w-60 border-r border-border bg-card shrink-0", className)}>
             {/* Sidebar Header */}
-            <div className="flex items-center justify-between h-14 border-b border-border px-3">
-                <span className="font-semibold text-sm text-foreground">Navegación</span>
+            <div className="flex items-center justify-end h-14 border-b border-border px-3">
                 <button
                     onClick={() => setCollapsed(true)}
                     className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors"
@@ -407,7 +406,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             )}
                         >
                             <Hash className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                            {ch.name.toLowerCase()}
+                            <span className="truncate" title={ch.name}>{ch.name.toLowerCase()}</span>
                         </Link>
                     ))}
                 </div>
@@ -433,7 +432,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                 <span className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-primary-foreground shrink-0">
                                     {initials}
                                 </span>
-                                {contact.name}
+                                <span className="truncate" title={contact.name}>{contact.name}</span>
                             </Link>
                         );
                     })}
