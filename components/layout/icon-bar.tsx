@@ -32,6 +32,7 @@ import {
     BarChart3,
     Settings,
     LogOut,
+    ShieldCheck,
 } from "lucide-react";
 
 interface IconBarProps {
@@ -50,6 +51,8 @@ const mainIcons = [
 const bottomIcons = [
     { id: "settings", icon: Settings, label: "Configuración", href: "/settings" },
 ];
+
+const adminIcon = { id: "admin", icon: ShieldCheck, label: "Administración", href: "/admin" };
 
 /**
  * IconBar - Fixed 48px wide vertical bar with main navigation icons
@@ -125,6 +128,28 @@ export function IconBar({ activeSection, onSectionChange }: IconBarProps) {
 
                 {/* Bottom Section */}
                 <div className="flex flex-col items-center gap-1">
+                    {/* Admin link — only for ADMIN/SUPER_ADMIN */}
+                    {(user?.supabaseRole === 'SUPER_ADMIN' || user?.supabaseRole === 'ADMIN') && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Link
+                                    href={adminIcon.href}
+                                    className={cn(
+                                        "inline-flex items-center justify-center h-9 w-9 rounded-lg transition-colors",
+                                        pathname === "/admin" || pathname.startsWith("/admin/")
+                                            ? "bg-white/15 text-white"
+                                            : "text-slate-400 hover:text-white hover:bg-white/10"
+                                    )}
+                                >
+                                    <adminIcon.icon className="h-5 w-5" />
+                                </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="bg-slate-800 border-slate-700 px-3 py-2">
+                                <p className="font-medium text-white">{adminIcon.label}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">Panel de administración de la plataforma</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                     {bottomIcons.map((item) => {
                         const isActive = item.href
                             ? pathname === item.href

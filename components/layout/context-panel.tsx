@@ -445,7 +445,9 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
                     </div>
                     <div className="mx-3 border-b border-border my-2" />
                     <div className="px-3 pb-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-2">Mensajes directos</p>
+                      <div className="flex items-center justify-between mb-2 px-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mensajes directos</p>
+                      </div>
                       {dmContacts.map((contact) => {
                         const initials = contact.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
                         return (
@@ -454,6 +456,12 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
                           </Link>
                         );
                       })}
+                      <Link
+                        href="/dm"
+                        className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mt-1"
+                      >
+                        Ver todos →
+                      </Link>
                     </div>
                     </>
                 )}

@@ -11,7 +11,7 @@ import { PurgeDataCard } from "@/components/features/purge-data-card";
 import { CsvImportCard } from "@/components/features/csv-import-card";
 import { OutlookIntegration } from "@/components/features/outlook-integration";
 import { AreaManagementCard } from "@/components/features/area-management-card";
-import { Shield, User, Briefcase, Users2 } from "lucide-react";
+import { Shield, User, Briefcase, Users2, ArrowRight } from "lucide-react";
 
 const roleIcons: Record<Role, any> = {
   admin: Shield,
@@ -168,6 +168,29 @@ export default function ProfilePage() {
           )}
         </div>
       </Card>
+
+      {canManageSettings && (
+        <Card className="p-6 border-primary/30 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Configuración de Plataforma
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gestiona usuarios, clientes, proyectos y canales desde el Panel de Administración.
+              </p>
+            </div>
+            <a
+              href="/admin"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shrink-0"
+            >
+              Panel de Administración
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </Card>
+      )}
 
       {canManageSettings && <AreaManagementCard />}
 

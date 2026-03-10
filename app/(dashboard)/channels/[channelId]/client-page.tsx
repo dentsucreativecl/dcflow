@@ -2,17 +2,27 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Hash, Send, Smile, Paperclip, AtSign, MoreHorizontal, Users, Pin, Loader2 } from "lucide-react";
+import { Hash, Send, Smile, Paperclip, AtSign, MoreHorizontal, Users, Pin, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
+import { log } from "@/lib/logger";
+
+interface AttachmentData {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+}
 
 interface MessageData {
   id: string;
   content: string;
+  attachments: AttachmentData[] | null;
   createdAt: string;
   user: {
     id: string;
@@ -28,6 +38,12 @@ interface ChannelData {
   description: string | null;
 }
 
+const EMOJI_LIST = [
+  "👍", "❤️", "😂", "🎉", "🔥", "👀", "✅", "🚀",
+  "💯", "👏", "😍", "🤔", "😊", "🙌", "💪", "⭐",
+  "📌", "💡", "⚡", "🎯", "✨", "🤝", "📎", "🗂️",
+];
+
 export default function ChannelPage() {
   const params = useParams();
   const { user } = useAuth();
@@ -40,6 +56,7 @@ export default function ChannelPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -55,7 +72,6 @@ export default function ChannelPage() {
       setLoading(true);
       const supabase = createClient();
 
-      // Fetch channel by slug
       const { data: channelData } = await supabase
         .from("Channel")
         .select("id, name, slug, description")
@@ -69,7 +85,6 @@ export default function ChannelPage() {
 
       setChannel(channelData);
 
-      // Fetch member count
       const { count } = await supabase
         .from("ChannelMember")
         .select("id", { count: "exact", head: true })
@@ -77,10 +92,9 @@ export default function ChannelPage() {
 
       if (count !== null) setMemberCount(count);
 
-      // Fetch messages
       const { data: messagesData } = await supabase
         .from("Message")
-        .select("id, content, createdAt, user:User(id, name, avatarUrl)")
+        .select("id, content, attachments, createdAt, user:User(id, name, avatarUrl)")
         .eq("channelId", channelData.id)
         .order("createdAt", { ascending: true });
 
@@ -89,6 +103,7 @@ export default function ChannelPage() {
           messagesData.map((m: Record<string, unknown>) => ({
             ...m,
             user: Array.isArray(m.user) ? m.user[0] : m.user,
+            attachments: m.attachments as AttachmentData[] | null,
           })) as MessageData[]
         );
       }
@@ -119,24 +134,20 @@ export default function ChannelPage() {
         async (payload) => {
           const newMsg = payload.new as Record<string, unknown>;
 
-          // Don't duplicate messages we already added optimistically
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-
-            // Fetch user info for the message
-            // For now use a placeholder; we'll enrich below
             return [
               ...prev,
               {
                 id: newMsg.id as string,
                 content: newMsg.content as string,
+                attachments: newMsg.attachments as AttachmentData[] | null,
                 createdAt: newMsg.createdAt as string,
                 user: null,
               },
             ];
           });
 
-          // Enrich with user data
           const { data: userData } = await supabase
             .from("User")
             .select("id, name, avatarUrl")
@@ -162,16 +173,47 @@ export default function ChannelPage() {
   }, [channel?.id, scrollToBottom]);
 
   const sendMessage = async () => {
-    if (!message.trim() || !user || !channel) return;
+    if ((!message.trim() && !attachment) || !user || !channel) return;
 
     const supabase = createClient();
     const msgId = crypto.randomUUID();
     const content = message.trim();
+    let attachments: AttachmentData[] | null = null;
+
+    // Upload attachment if present
+    if (attachment) {
+      setUploading(true);
+      const ext = attachment.name.split(".").pop() || "bin";
+      const path = `channels/${channel.id}/${msgId}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("attachments")
+        .upload(path, attachment, { contentType: attachment.type });
+
+      if (uploadError) {
+        log.error("Error uploading file:", uploadError.message);
+        // Try without public bucket — generate signed URL
+        setUploading(false);
+      } else {
+        const { data: urlData } = supabase.storage
+          .from("attachments")
+          .getPublicUrl(path);
+
+        attachments = [{
+          name: attachment.name,
+          url: urlData.publicUrl,
+          type: attachment.type,
+          size: attachment.size,
+        }];
+      }
+      setUploading(false);
+    }
 
     // Optimistic update
     const optimisticMsg: MessageData = {
       id: msgId,
-      content,
+      content: content || (attachments ? `📎 ${attachments[0].name}` : ""),
+      attachments,
       createdAt: new Date().toISOString(),
       user: {
         id: user.id,
@@ -189,17 +231,18 @@ export default function ChannelPage() {
         id: msgId,
         channelId: channel.id,
         userId: user.id,
-        content,
+        content: content || (attachments ? `📎 ${attachments[0].name}` : ""),
+        attachments: attachments || undefined,
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
 
       if (error) {
-        console.error("Error sending message:", error);
-        // Remove optimistic message on error
+        log.error("Error sending message:", error);
         setMessages((prev) => prev.filter((m) => m.id !== msgId));
       }
     } catch (err) {
-      console.error("Error sending message:", err);
+      log.error("Error sending message:", err);
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
     }
   };
@@ -208,6 +251,10 @@ export default function ChannelPage() {
     const file = e.target.files?.[0];
     if (file) setAttachment(file);
     if (e.target) e.target.value = "";
+  };
+
+  const insertEmoji = (emoji: string) => {
+    setMessage((prev) => prev + emoji);
   };
 
   const getInitials = (name: string) =>
@@ -228,6 +275,9 @@ export default function ChannelPage() {
       return "";
     }
   };
+
+  const isImageType = (type: string) =>
+    type.startsWith("image/");
 
   if (loading) {
     return (
@@ -292,6 +342,35 @@ export default function ChannelPage() {
                   </span>
                 </div>
                 <p className="text-sm text-foreground mt-0.5">{msg.content}</p>
+                {msg.attachments && msg.attachments.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {msg.attachments.map((att, i) =>
+                      isImageType(att.type) ? (
+                        <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+                          <img
+                            src={att.url}
+                            alt={att.name}
+                            className="max-w-xs max-h-60 rounded-lg border border-border object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <a
+                          key={i}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent/50 border border-border text-sm hover:bg-accent transition-colors w-fit"
+                        >
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate max-w-[200px]">{att.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {(att.size / 1024).toFixed(1)} KB
+                          </span>
+                        </a>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-start gap-1">
                 <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -309,7 +388,11 @@ export default function ChannelPage() {
       <div className="border-t border-border p-4">
         {attachment && (
           <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-accent/50 border border-border">
-            <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+            {attachment.type.startsWith("image/") ? (
+              <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+            ) : (
+              <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
             <span className="text-sm truncate flex-1">{attachment.name}</span>
             <span className="text-xs text-muted-foreground">
               {(attachment.size / 1024).toFixed(1)} KB
@@ -320,7 +403,7 @@ export default function ChannelPage() {
               className="h-6 w-6 shrink-0"
               onClick={() => setAttachment(null)}
             >
-              <span className="text-xs">X</span>
+              <X className="h-3 w-3" />
             </Button>
           </div>
         )}
@@ -343,23 +426,40 @@ export default function ChannelPage() {
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            onKeyDown={(e) => e.key === "Enter" && !uploading && sendMessage()}
             placeholder={`Escribe en #${channel.name}...`}
             className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0"
           />
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
             <AtSign className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-            <Smile className="h-4 w-4" />
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                <Smile className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="end" side="top">
+              <div className="grid grid-cols-8 gap-1">
+                {EMOJI_LIST.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => insertEmoji(emoji)}
+                    className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg transition-colors"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button
             size="icon"
             className="h-8 w-8 shrink-0 bg-[var(--peach)] hover:bg-[var(--peach)]/90"
             onClick={sendMessage}
-            disabled={!message.trim()}
+            disabled={(!message.trim() && !attachment) || uploading}
           >
-            <Send className="h-4 w-4" />
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>

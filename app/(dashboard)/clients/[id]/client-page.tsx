@@ -249,6 +249,17 @@ export default function ClientDetailPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Listen for refresh events (e.g., after creating a project)
+  useEffect(() => {
+    const handler = () => fetchData();
+    window.addEventListener("dcflow:clients-refresh", handler);
+    window.addEventListener("dcflow:refresh", handler);
+    return () => {
+      window.removeEventListener("dcflow:clients-refresh", handler);
+      window.removeEventListener("dcflow:refresh", handler);
+    };
+  }, [fetchData]);
+
   // Fetch internal users for edit modal (load once)
   useEffect(() => {
     if (!isAdmin && !isSuperAdmin) return;
