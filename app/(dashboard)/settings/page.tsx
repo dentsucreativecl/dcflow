@@ -27,7 +27,7 @@ const roleColors: Record<Role, string> = {
   client: "bg-studio-success/20 text-studio-success",
 };
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, isSuperAdmin: isSA } = useAuth();
 
   if (loading) {
     return (
@@ -40,6 +40,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const isSuperAdmin = user.supabaseRole === 'SUPER_ADMIN';
+  const canManageSettings = isAdmin || isSA;
   const RoleIcon = isSuperAdmin ? Shield : roleIcons[user.role];
 
   return (
@@ -168,11 +169,11 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {user.role === "admin" && <AreaManagementCard />}
+      {canManageSettings && <AreaManagementCard />}
 
-      {user.role === "admin" && <PurgeDataCard />}
+      {canManageSettings && <PurgeDataCard />}
 
-      {user.role === "admin" && <CsvImportCard />}
+      {canManageSettings && <CsvImportCard />}
 
       <OutlookIntegration tasks={[]} />
     </div>

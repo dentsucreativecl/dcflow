@@ -26,8 +26,8 @@ export async function PATCH(
     }
 
     const { role } = await request.json();
-    if (!['MEMBER', 'ADMIN'].includes(role)) {
-        return NextResponse.json({ error: 'Role must be MEMBER or ADMIN' }, { status: 400 });
+    if (!['MEMBER', 'PM', 'ADMIN'].includes(role)) {
+        return NextResponse.json({ error: 'Role must be MEMBER, PM or ADMIN' }, { status: 400 });
     }
 
     // Prevent changing own role

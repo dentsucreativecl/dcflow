@@ -23,7 +23,7 @@ export type PermissionLevel = keyof typeof PERMISSION_LEVELS;
 export type ResourceType = 'space' | 'folder' | 'list' | 'task';
 
 // User roles from database
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PM' | 'MEMBER';
 export type UserType = 'MEMBER' | 'GUEST';
 
 // Permission source (where the permission comes from)

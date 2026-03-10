@@ -16,6 +16,7 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   ADMIN
+  PM
   MEMBER
 }
 
@@ -193,6 +194,7 @@ model Space {
   icon        String?
   description String?
   areas       String[]
+  isArchived  Boolean       @default(false)
 
   statuses    Status[]
   members     SpaceMember[]

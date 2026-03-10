@@ -114,6 +114,9 @@ export function hasPermission(role: Role, permission: Permission): boolean {
 }
 
 export function canAccessRoute(role: Role, path: string): boolean {
+    // Admin has access to everything
+    if (role === 'admin') return true;
+
     // Define route access rules
     const routePermissions: Record<string, Permission> = {
         '/admin': 'access_admin',
@@ -124,11 +127,12 @@ export function canAccessRoute(role: Role, path: string): boolean {
         '/reports': 'view_reports',
     };
 
-    // Check if route requires specific permission
-    const requiredPermission = routePermissions[path];
-    if (!requiredPermission) {
-        return true; // No specific permission required
+    // Check matching route (prefix match)
+    for (const [route, permission] of Object.entries(routePermissions)) {
+        if (path.startsWith(route)) {
+            return hasPermission(role, permission);
+        }
     }
 
-    return hasPermission(role, requiredPermission);
+    return true; // No specific permission required
 }

@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Role types matching Prisma schema
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PM' | 'MEMBER';
 export type UserType = 'MEMBER' | 'GUEST';
 
 // Legacy role type for backwards compatibility with existing components
@@ -26,21 +26,9 @@ export interface User {
     isActive?: boolean;
 }
 
-// Permission types
-export type Permission =
-    | 'view_dashboard'
-    | 'view_projects'
-    | 'create_project'
-    | 'edit_project'
-    | 'delete_project'
-    | 'view_time_tracking'
-    | 'manage_time_entries'
-    | 'view_users'
-    | 'manage_users'
-    | 'view_reports'
-    | 'view_settings'
-    | 'manage_settings'
-    | 'access_admin';
+// Re-export unified Permission type from lib/auth/permissions
+import { Permission, hasPermission as authHasPermission, canAccessRoute as authCanAccessRoute } from '@/lib/auth/permissions';
+export type { Permission };
 
 interface AuthContextType {
     user: User | null;
@@ -63,28 +51,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Columns to select from User table (NEVER use select('*') to avoid exposing sensitive data)
 const USER_SELECT_COLUMNS = 'id, email, name, role, userType, avatarUrl, weeklyCapacity, isActive, department, userAreas';
 
-// Role to permission mapping
-const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-    admin: [
-        'view_dashboard', 'view_projects', 'create_project', 'edit_project', 'delete_project',
-        'view_time_tracking', 'manage_time_entries', 'view_users', 'manage_users',
-        'view_reports', 'view_settings', 'manage_settings', 'access_admin'
-    ],
-    pm: [
-        'view_dashboard', 'view_projects', 'create_project', 'edit_project',
-        'view_time_tracking', 'manage_time_entries', 'view_users', 'view_reports', 'view_settings'
-    ],
-    member: [
-        'view_dashboard', 'view_projects', 'view_time_tracking', 'manage_time_entries', 'view_settings'
-    ],
-    client: [
-        'view_dashboard', 'view_projects'
-    ],
-};
-
 // Convert Supabase roles to legacy role system
 function mapSupabaseRoleToLegacy(role: UserRole, userType: UserType): Role {
     if (role === 'SUPER_ADMIN' || role === 'ADMIN') return 'admin';
+    if (role === 'PM') return 'pm';
     if (userType === 'GUEST') return 'client';
     return 'member';
 }
@@ -227,30 +197,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
     };
 
-    // Check permission
+    // Check permission using unified auth/permissions.ts
     const hasPermission = (permission: Permission): boolean => {
         if (!user) return false;
-        return ROLE_PERMISSIONS[user.role]?.includes(permission) ?? false;
+        return authHasPermission(user.role, permission);
     };
 
-    // Check route access
+    // Check route access using unified permissions
     const canAccessRoute = (path: string): boolean => {
         if (!user) return false;
-        if (user.role === 'admin') return true;
-
-        const restrictedRoutes: Record<string, Role[]> = {
-            '/settings': ['admin', 'pm'],
-            '/admin': ['admin'],
-            '/reports': ['admin', 'pm'],
-        };
-
-        for (const [route, allowedRoles] of Object.entries(restrictedRoutes)) {
-            if (path.startsWith(route) && !allowedRoles.includes(user.role)) {
-                return false;
-            }
-        }
-
-        return true;
+        return authCanAccessRoute(user.role, path);
     };
 
     const value: AuthContextType = {
@@ -261,8 +217,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         hasPermission,
         canAccessRoute,
-        isAdmin: user?.role === 'admin',
-        isPM: user?.role === 'pm',
+        isAdmin: user?.role === 'admin' || user?.supabaseRole === 'ADMIN',
+        isPM: user?.role === 'pm' || user?.supabaseRole === 'PM',
         isMember: user?.role === 'member',
         isClient: user?.role === 'client',
         isSuperAdmin: user?.supabaseRole === 'SUPER_ADMIN',

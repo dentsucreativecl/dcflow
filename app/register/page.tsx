@@ -39,6 +39,14 @@ export default function RegisterPage() {
         e.preventDefault()
         setError('')
 
+        // Validate email domain
+        const allowedDomains = ['dentsu.com', 'dfrnt.com', 'dentsuaegis.com']
+        const emailDomain = formData.email.split('@')[1]?.toLowerCase()
+        if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+            setError('Solo se permiten emails corporativos (@dentsu.com)')
+            return
+        }
+
         // Validate passwords match
         if (formData.password !== formData.confirmPassword) {
             setError('Las contraseñas no coinciden')
