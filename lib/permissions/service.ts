@@ -10,15 +10,16 @@ import {
 
 /**
  * Permission Service - Fetches and caches permissions from Supabase
+ *
+ * ResourcePermission DB columns: id, userId, teamId, spaceId, folderId, listId, taskId, level, grantedById, grantedAt
  */
 
-// Create Supabase client
 function getSupabase() {
     return createClient();
 }
 
 // Cache for permissions (simple in-memory cache)
-const permissionCache = new Map<string, { data: ResourcePermission[]; timestamp: number }>();
+const permissionCache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 60000; // 1 minute
 
 /**
@@ -29,7 +30,7 @@ export async function fetchUserPermissions(userId: string): Promise<ResourcePerm
     const cached = permissionCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.data;
+        return cached.data as ResourcePermission[];
     }
 
     const supabase = getSupabase();
@@ -37,11 +38,10 @@ export async function fetchUserPermissions(userId: string): Promise<ResourcePerm
     // Get direct permissions
     const { data: directPerms, error: directError } = await supabase
         .from('ResourcePermission')
-        .select('id, userId, teamId, resourceType, resourceId, permissionLevel, grantedById, createdAt, updatedAt')
+        .select('id, userId, teamId, spaceId, folderId, listId, taskId, level, grantedById, grantedAt')
         .eq('userId', userId);
 
     if (directError) {
-        console.error('Error fetching direct permissions:', directError);
         return [];
     }
 
@@ -52,8 +52,7 @@ export async function fetchUserPermissions(userId: string): Promise<ResourcePerm
         .eq('userId', userId);
 
     if (teamError) {
-        console.error('Error fetching teams:', teamError);
-        return directPerms || [];
+        return (directPerms || []) as ResourcePermission[];
     }
 
     const teamIds = teams?.map(t => t.teamId) || [];
@@ -63,17 +62,16 @@ export async function fetchUserPermissions(userId: string): Promise<ResourcePerm
     if (teamIds.length > 0) {
         const { data: teamPermData, error: teamPermError } = await supabase
             .from('ResourcePermission')
-            .select('id, userId, teamId, resourceType, resourceId, permissionLevel, grantedById, createdAt, updatedAt')
+            .select('id, userId, teamId, spaceId, folderId, listId, taskId, level, grantedById, grantedAt')
             .in('teamId', teamIds);
 
         if (!teamPermError && teamPermData) {
-            teamPerms = teamPermData;
+            teamPerms = teamPermData as ResourcePermission[];
         }
     }
 
-    const allPermissions = [...(directPerms || []), ...teamPerms];
+    const allPermissions = [...((directPerms || []) as ResourcePermission[]), ...teamPerms];
 
-    // Cache the result
     permissionCache.set(cacheKey, { data: allPermissions, timestamp: Date.now() });
 
     return allPermissions;
@@ -98,13 +96,11 @@ export async function fetchSpaceMemberships(userId: string): Promise<SpaceMember
         .eq('userId', userId);
 
     if (error) {
-        console.error('Error fetching space memberships:', error);
         return [];
     }
 
-    const memberships = data || [];
+    const memberships = (data || []) as SpaceMember[];
 
-    // Cache the result
     permissionCache.set(cacheKey, { data: memberships, timestamp: Date.now() });
 
     return memberships;
@@ -129,13 +125,11 @@ export async function fetchUserTeams(userId: string): Promise<string[]> {
         .eq('userId', userId);
 
     if (error) {
-        console.error('Error fetching user teams:', error);
         return [];
     }
 
     const teamIds = data?.map(t => t.teamId) || [];
 
-    // Cache the result
     permissionCache.set(cacheKey, { data: teamIds, timestamp: Date.now() });
 
     return teamIds;
@@ -155,17 +149,24 @@ export async function fetchResourceHierarchy(
         case 'task': {
             const { data: task } = await supabase
                 .from('Task')
-                .select('id, listId, list:listId(id, folderId, spaceId, folder:folderId(spaceId))')
+                .select('id, listId')
                 .eq('id', resourceId)
                 .single();
 
             if (task) {
                 hierarchy.taskId = task.id;
                 hierarchy.listId = task.listId;
-                const list = task.list as { folderId: string | null; spaceId: string | null } | null;
+
+                // Fetch list to get folder/space
+                const { data: list } = await supabase
+                    .from('List')
+                    .select('folderId, spaceId')
+                    .eq('id', task.listId)
+                    .single();
+
                 if (list) {
-                    hierarchy.folderId = list.folderId;
-                    hierarchy.spaceId = list.spaceId;
+                    hierarchy.folderId = list.folderId ?? undefined;
+                    hierarchy.spaceId = list.spaceId ?? undefined;
                 }
             }
             break;
@@ -180,8 +181,8 @@ export async function fetchResourceHierarchy(
 
             if (list) {
                 hierarchy.listId = list.id;
-                hierarchy.folderId = list.folderId;
-                hierarchy.spaceId = list.spaceId;
+                hierarchy.folderId = list.folderId ?? undefined;
+                hierarchy.spaceId = list.spaceId ?? undefined;
             }
             break;
         }
@@ -195,7 +196,7 @@ export async function fetchResourceHierarchy(
 
             if (folder) {
                 hierarchy.folderId = folder.id;
-                hierarchy.spaceId = folder.spaceId;
+                hierarchy.spaceId = folder.spaceId ?? undefined;
             }
             break;
         }
@@ -217,7 +218,6 @@ export async function checkResourcePermission(
     resourceType: 'task' | 'list' | 'folder' | 'space',
     resourceId: string
 ): Promise<PermissionLevel> {
-    // Get all required data
     const [permissions, spaceMemberships, hierarchy, teamIds] = await Promise.all([
         fetchUserPermissions(user.id),
         fetchSpaceMemberships(user.id),
@@ -225,13 +225,11 @@ export async function checkResourcePermission(
         fetchUserTeams(user.id),
     ]);
 
-    // Add team IDs to user
     const userWithTeams: PermissionUser = {
         ...user,
         teamIds,
     };
 
-    // Resolve permission
     return resolvePermission(userWithTeams, hierarchy, permissions, spaceMemberships);
 }
 

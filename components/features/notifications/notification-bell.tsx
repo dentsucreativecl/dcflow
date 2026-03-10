@@ -110,7 +110,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
         await supabase
             .from("Notification")
-            .update({ read: true })
+            .update({ isRead: true })
             .eq("id", notificationId);
 
         fetchNotifications();
@@ -121,9 +121,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
         await supabase
             .from("Notification")
-            .update({ read: true })
+            .update({ isRead: true })
             .eq("userId", userId)
-            .eq("read", false);
+            .eq("isRead", false);
 
         fetchNotifications();
     };

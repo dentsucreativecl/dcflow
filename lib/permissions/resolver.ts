@@ -66,7 +66,7 @@ export interface ResourcePermission {
 export interface SpaceMember {
     spaceId: string;
     userId: string;
-    role: 'OWNER' | 'ADMIN' | 'MEMBER';
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 }
 
 /**

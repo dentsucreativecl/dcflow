@@ -119,11 +119,13 @@ async function executeAction(rule: AutomationRule, taskId: string, userId: strin
             const { error } = await supabase
                 .from("Notification")
                 .insert({
+                    id: crypto.randomUUID(),
                     type: "STATUS_CHANGED",
                     userId: actionValue,
                     taskId,
                     title: `Automatización: ${rule.name}`,
                     message: `Se ejecutó la automatización "${rule.name}"`,
+                    createdAt: new Date().toISOString(),
                 });
             if (error) throw error;
             break;
@@ -139,12 +141,16 @@ async function executeAction(rule: AutomationRule, taskId: string, userId: strin
         }
 
         case "ADD_COMMENT": {
+            const now = new Date().toISOString();
             const { error } = await supabase
                 .from("Comment")
                 .insert({
+                    id: crypto.randomUUID(),
                     taskId,
                     content: actionValue,
                     userId,
+                    createdAt: now,
+                    updatedAt: now,
                 });
             if (error) throw error;
             break;
@@ -158,11 +164,13 @@ async function executeAction(rule: AutomationRule, taskId: string, userId: strin
     const activityType = ACTIVITY_TYPE_MAP[action];
     if (activityType) {
         await supabase.from("Activity").insert({
+            id: crypto.randomUUID(),
             taskId,
             userId,
             type: activityType,
             field: `auto:${rule.name}`,
             newValue: actionValue,
+            createdAt: new Date().toISOString(),
         }).then(() => {}); // fire and forget
     }
 }

@@ -1,14 +1,16 @@
 import { createClient } from "@/lib/supabase/client";
 
+/**
+ * TimeEntry — matches Prisma schema:
+ *   id, taskId, userId, hours (Float), date (Date), description, createdAt, updatedAt
+ */
 export interface TimeEntry {
     id: string;
     taskId: string;
     userId: string;
-    startTime: string;
-    endTime: string | null;
-    duration: number; // in seconds
+    hours: number;
+    date: string;
     description: string | null;
-    isManual: boolean;
     createdAt: string;
     updatedAt: string;
     task?: {
@@ -26,105 +28,38 @@ function getSupabase() {
     return createClient();
 }
 
-// Start a timer for a task
-export async function startTimer(taskId: string, userId: string) {
-    const supabase = getSupabase();
-
-    // Check if there's already an active timer for this user and stop it
-    // Query recent entries and filter for active timer in JavaScript
-    const { data: recentEntries } = await supabase
-        .from("TimeEntry")
-        .select("id, startTime, endTime")
-        .eq("userId", userId)
-        .order("startTime", { ascending: false })
-        .limit(5);
-
-    const activeEntry = (recentEntries || []).find(entry => entry.endTime === null);
-
-    if (activeEntry) {
-        await stopTimer(activeEntry.id);
-    }
-
-    // Create new timer
-    const { data, error } = await supabase
-        .from("TimeEntry")
-        .insert({
-            taskId,
-            userId,
-            startTime: new Date().toISOString(),
-            isManual: false,
-        })
-        .select()
-        .single();
-
-    if (error) throw error;
-    return data;
-}
-
-// Stop an active timer
-export async function stopTimer(entryId: string) {
-    const supabase = getSupabase();
-
-    // Get the entry to calculate duration
-    const { data: entry } = await supabase
-        .from("TimeEntry")
-        .select("startTime")
-        .eq("id", entryId)
-        .single();
-
-    if (!entry) throw new Error("Entry not found");
-
-    const endTime = new Date();
-    const startTime = new Date(entry.startTime);
-    const duration = Math.round((endTime.getTime() - startTime.getTime()) / 1000); // in seconds
-
-    const { data, error } = await supabase
-        .from("TimeEntry")
-        .update({
-            endTime: endTime.toISOString(),
-            duration,
-        })
-        .eq("id", entryId)
-        .select()
-        .single();
-
-    if (error) throw error;
-    return data;
-}
-
-// Log manual time entry
+/** Log a manual time entry */
 export async function logManualTime(
     taskId: string,
     userId: string,
-    durationSeconds: number,
+    hours: number,
     date: Date,
     description?: string
-) {
+): Promise<TimeEntry> {
     const supabase = getSupabase();
-
-    const startTime = date;
-    const endTime = new Date(date.getTime() + durationSeconds * 1000);
+    const now = new Date().toISOString();
 
     const { data, error } = await supabase
         .from("TimeEntry")
         .insert({
+            id: crypto.randomUUID(),
             taskId,
             userId,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            duration: durationSeconds,
+            hours,
+            date: date.toISOString().split("T")[0],
             description: description || null,
-            isManual: true,
+            createdAt: now,
+            updatedAt: now,
         })
         .select()
         .single();
 
     if (error) throw error;
-    return data;
+    return data as TimeEntry;
 }
 
-// Delete a time entry
-export async function deleteTimeEntry(entryId: string) {
+/** Delete a time entry */
+export async function deleteTimeEntry(entryId: string): Promise<void> {
     const supabase = getSupabase();
 
     const { error } = await supabase
@@ -135,7 +70,7 @@ export async function deleteTimeEntry(entryId: string) {
     if (error) throw error;
 }
 
-// Get time entries for a task
+/** Get time entries for a task */
 export async function getTimeEntries(taskId: string): Promise<TimeEntry[]> {
     const supabase = getSupabase();
 
@@ -146,36 +81,13 @@ export async function getTimeEntries(taskId: string): Promise<TimeEntry[]> {
             user:User(id, name, avatarUrl)
         `)
         .eq("taskId", taskId)
-        .order("startTime", { ascending: false });
+        .order("date", { ascending: false });
 
     if (error) throw error;
     return (data || []) as TimeEntry[];
 }
 
-// Get currently active timer for user
-export async function getActiveTimer(userId: string): Promise<TimeEntry | null> {
-    const supabase = getSupabase();
-
-    // Query recent entries and filter for active timer (endTime is null) in JavaScript
-    // This avoids issues with the .is("endTime", null) filter in some Supabase configurations
-    const { data, error } = await supabase
-        .from("TimeEntry")
-        .select(`
-            *,
-            task:Task(id, title)
-        `)
-        .eq("userId", userId)
-        .order("startTime", { ascending: false })
-        .limit(10);
-
-    if (error) throw error;
-
-    // Find the active timer (entry without endTime)
-    const activeTimer = (data || []).find(entry => entry.endTime === null);
-    return activeTimer as TimeEntry | null;
-}
-
-// Get time entries for a user in a date range
+/** Get time entries for a user in a date range */
 export async function getUserTimeEntries(
     userId: string,
     startDate?: Date,
@@ -190,13 +102,13 @@ export async function getUserTimeEntries(
             task:Task(id, title)
         `)
         .eq("userId", userId)
-        .order("startTime", { ascending: false });
+        .order("date", { ascending: false });
 
     if (startDate) {
-        query = query.gte("startTime", startDate.toISOString());
+        query = query.gte("date", startDate.toISOString().split("T")[0]);
     }
     if (endDate) {
-        query = query.lte("startTime", endDate.toISOString());
+        query = query.lte("date", endDate.toISOString().split("T")[0]);
     }
 
     const { data, error } = await query;
@@ -205,7 +117,7 @@ export async function getUserTimeEntries(
     return (data || []) as TimeEntry[];
 }
 
-// Get total hours for a user in a date range (returns hours, not seconds)
+/** Get total hours for a user in a date range */
 export async function getUserTotalHours(
     userId: string,
     startDate: Date,
@@ -215,19 +127,17 @@ export async function getUserTotalHours(
 
     const { data, error } = await supabase
         .from("TimeEntry")
-        .select("duration")
+        .select("hours")
         .eq("userId", userId)
-        .gte("startTime", startDate.toISOString())
-        .lte("startTime", endDate.toISOString())
-        .not("endTime", "is", null); // Only count completed entries
+        .gte("date", startDate.toISOString().split("T")[0])
+        .lte("date", endDate.toISOString().split("T")[0]);
 
     if (error) throw error;
 
-    const totalSeconds = (data || []).reduce((acc, entry) => acc + (entry.duration || 0), 0);
-    return totalSeconds / 3600; // Convert seconds to hours
+    return (data || []).reduce((acc, entry) => acc + (entry.hours || 0), 0);
 }
 
-// Get weekly hours for a user (current week)
+/** Get weekly hours for a user (current week) */
 export async function getUserWeeklyHours(userId: string): Promise<number> {
     const now = new Date();
     const startOfWeek = new Date(now);

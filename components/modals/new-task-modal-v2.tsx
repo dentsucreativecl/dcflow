@@ -208,13 +208,16 @@ export function NewTaskModalV2() {
                 await supabase
                     .from("TaskAssignment")
                     .insert({
+                        id: crypto.randomUUID(),
                         taskId: newTask.id,
                         userId: data.assigneeId,
+                        assignedAt: now,
                     });
             }
 
             // Log task creation activity
             supabase.from("Activity").insert({
+                id: crypto.randomUUID(),
                 taskId: newTask.id,
                 userId: user.id,
                 type: "CREATED",

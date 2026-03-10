@@ -112,6 +112,7 @@ export function NewProjectModal() {
       const newId = self.crypto.randomUUID();
       const now = new Date().toISOString();
 
+      // Create project — also add default statuses for lists without a folder
       const { error } = await supabase
         .from("List")
         .insert({
