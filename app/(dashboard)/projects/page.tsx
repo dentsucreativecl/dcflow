@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   List as ListIcon, Plus, Search, Loader2, FolderOpen,
   Calendar, CheckCircle2, Circle, ArrowUpDown, ArrowUp, ArrowDown,
@@ -69,8 +69,7 @@ export default function ProjectsPage() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
-  useEffect(() => {
-    async function fetchProjects() {
+  const fetchProjects = useCallback(async () => {
       if (!user) return;
       const supabase = createClient();
 
@@ -222,10 +221,18 @@ export default function ProjectsPage() {
       }
 
       setLoading(false);
-    }
-
-    fetchProjects();
   }, [user, isAdmin]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  // Listen for refresh events (e.g. after creating a new project)
+  useEffect(() => {
+    const handler = () => { fetchProjects(); };
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, [fetchProjects]);
 
   const spaces = useMemo(
     () => [...new Set(projects.map((p) => p.spaceName))].filter(Boolean),

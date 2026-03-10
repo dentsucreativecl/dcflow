@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -58,8 +60,9 @@ const departments = [
 ];
 
 export function NewMemberModal() {
-  const { activeModal, closeModal, addTeamMember } = useAppStore();
+  const { activeModal, closeModal } = useAppStore();
   const { addToast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
 
   const isOpen = activeModal === "new-member";
 
@@ -69,7 +72,7 @@ export function NewMemberModal() {
     reset,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,41 +90,52 @@ export function NewMemberModal() {
     closeModal();
   };
 
-  const onSubmit = (data: FormData) => {
-    // Generate initials from name
-    const nameParts = data.name.split(" ");
-    const avatar =
-      nameParts.length > 1
-        ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
-        : data.name.substring(0, 2).toUpperCase();
+  const onSubmit = async (data: FormData) => {
+    setSubmitting(true);
 
-    addTeamMember({
-      name: data.name,
-      email: data.email,
-      role: data.role,
-      department: data.department,
-      hourlyRate: data.hourlyRate,
-      capacity: data.capacity,
-      avatar,
-      hoursThisWeek: 0,
-      skills: [],
-      status: "available",
-    });
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          name: data.name,
+          role: data.role,
+          department: data.department,
+          weeklyCapacity: data.capacity,
+        }),
+      });
 
-    addToast({
-      title: "Miembro agregado",
-      description: `${data.name} ha sido agregado al equipo.`,
-      type: "success",
-    });
+      const result = await res.json();
 
-    handleClose();
+      if (!res.ok) {
+        throw new Error(result.error || 'Error al enviar invitación');
+      }
+
+      addToast({
+        title: "Invitación enviada",
+        description: `Se envió una invitación a ${data.email}`,
+        type: "success",
+      });
+
+      handleClose();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Error desconocido";
+      addToast({
+        title: "Error al invitar miembro",
+        description: msg,
+        type: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Agregar Miembro del Equipo</DialogTitle>
+          <DialogTitle>Invitar Miembro al Equipo</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -230,11 +244,18 @@ export function NewMemberModal() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              Agregar Miembro
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                "Enviar Invitación"
+              )}
             </Button>
           </DialogFooter>
         </form>

@@ -135,6 +135,11 @@ export function NewProjectModal() {
       });
 
       handleClose();
+
+      // Notify any open list/project views to refresh
+      window.dispatchEvent(new CustomEvent('dcflow:refresh'));
+      window.dispatchEvent(new CustomEvent('dcflow:clients-refresh'));
+
       router.push(`/lists/${newId}`);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Error desconocido";
