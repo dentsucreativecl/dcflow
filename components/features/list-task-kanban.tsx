@@ -840,7 +840,7 @@ function TaskKanbanCard({ task, onClick, onImageClick }: TaskKanbanCardProps) {
             <ChevronDown className={cn("h-3 w-3 transition-transform", subtasksExpanded && "rotate-180")} />
             <span>{subtasks.length} subtarea{subtasks.length > 1 ? "s" : ""}</span>
             <span className="ml-auto text-[10px] text-muted-foreground">
-              {subtasks.filter(s => s.status?.type === "DONE" || s.status?.name?.toLowerCase().includes("completa") || s.status?.name?.toLowerCase().includes("done")).length}/{subtasks.length}
+              {subtasks.filter(s => s.status?.name?.toLowerCase().includes("completa") || s.status?.name?.toLowerCase().includes("done")).length}/{subtasks.length}
             </span>
           </button>
           {subtasksExpanded && (

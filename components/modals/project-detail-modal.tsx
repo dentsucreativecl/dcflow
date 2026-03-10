@@ -86,7 +86,7 @@ export function ProjectDetailModal() {
     openModal("task-detail-v2", { taskId });
   };
 
-  const budgetUsed = Math.round((project.gastado / project.budget) * 100);
+  const budgetUsed = Math.round((project.spent / project.budget) * 100);
 
   // Task stats
   const todoTasks = projectTasks.filter((t) => t.status === "todo").length;
@@ -238,7 +238,7 @@ export function ProjectDetailModal() {
                     <div>
                       <p className="text-xs text-muted-foreground">Presupuesto</p>
                       <p className="text-sm font-medium text-foreground">
-                        {formatCurrency(project.gastado)} / {formatCurrency(project.budget)}
+                        {formatCurrency(project.spent)} / {formatCurrency(project.budget)}
                       </p>
                     </div>
                   </div>

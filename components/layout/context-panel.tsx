@@ -34,7 +34,7 @@ import { TeamSidebarContent } from "./team-sidebar-content";
 import { PlaceholderSection } from "./placeholder-section";
 import { DocsSidebarContent } from "./docs-sidebar-content";
 import { ReportsSidebarContent } from "./reports-sidebar-content";
-import { TimeSidebarContent } from "./time-sidebar-content";
+// TimeSidebarContent eliminado — timer en tiempo real removido
 import { useAuth } from "@/contexts/auth-context";
 
 interface Space {
@@ -425,7 +425,7 @@ export function ContextPanel({ isOpen, activeSection }: ContextPanelProps) {
 
                 {activeSection === "docs" && <DocsSidebarContent />}
             {activeSection === "reports" && <ReportsSidebarContent />}
-            {activeSection === "time" && <TimeSidebarContent />}
+            {activeSection === "time" && <div className="px-3 py-8 text-center text-sm text-muted-foreground">Timer deshabilitado</div>}
             </ScrollArea>
         </div>
     );

@@ -818,7 +818,7 @@ export default function ListPage() {
                         listId={listId}
                         tasks={filteredTasks}
                         onTaskClick={(task) => handleOpenTask(task.id)}
-                        onTaskUpdate={setTasks}
+                        onTaskUpdate={(updated) => setTasks(updated as Task[])}
                         onAutomationTrigger={handleAutomationTrigger}
                     />
                 ) : viewMode === "calendar" ? (

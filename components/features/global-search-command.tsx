@@ -108,8 +108,15 @@ export function GlobalSearchCommand() {
                     .limit(5);
 
                 
-                setTasks(tasksData || []);
-                setLists(listsData || []);
+                setTasks((tasksData || []).map((t: any) => ({
+                    ...t,
+                    list: Array.isArray(t.list) ? t.list[0] ?? null : t.list ?? null,
+                    status: Array.isArray(t.status) ? t.status[0] ?? null : t.status ?? null,
+                })));
+                setLists((listsData || []).map((l: any) => ({
+                    ...l,
+                    space: Array.isArray(l.space) ? l.space[0] ?? null : l.space ?? null,
+                })));
                 setSpaces(spacesData || []);
                 setUsers(usersData || []);
             } catch (error) {

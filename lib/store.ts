@@ -35,6 +35,7 @@ interface ModalData {
   taskId?: string;
   memberId?: string;
   eventId?: string;
+  statusId?: string;
   selectedDate?: Date;
   selectedSlot?: { start: Date; end: Date };
   onConfirm?: () => void;

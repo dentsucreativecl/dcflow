@@ -73,7 +73,7 @@ import {
     createTaskUpdateNotification,
 } from "@/lib/notifications";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { TaskTimeLog } from "@/components/features/time/task-time-log";
+// TaskTimeLog eliminado — timer en tiempo real removido
 import { FileUploadZone } from "@/components/features/file-upload-zone";
 import { CustomFieldValueEditor, CustomFieldWithValue } from "@/components/features/custom-fields/custom-field-value-editor";
 import { TaskRelationData, RelationType, getRelationLabel, getRelatedTask, getEffectiveType, getInverseType, isTaskBlocked, groupRelationsByType } from "@/lib/dependencies";
@@ -261,10 +261,11 @@ export function TaskDetailModalV2() {
                         folder: Array.isArray(listData.folder) ? listData.folder[0] : listData.folder,
                     } : null,
                     createdBy: Array.isArray(taskData.createdBy) ? taskData.createdBy[0] : taskData.createdBy,
-                    assignments: [],
-                    checklists: [],
-                    attachments: [],
-                    subtasks: [],
+                    assignments: [] as TaskData["assignments"],
+                    checklists: [] as TaskData["checklists"],
+                    attachments: [] as TaskData["attachments"],
+                    subtasks: [] as TaskData["subtasks"],
+                    customFields: [] as TaskData["customFields"],
                 };
 
                 // Fetch assignments

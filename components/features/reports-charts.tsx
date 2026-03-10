@@ -15,7 +15,12 @@ import {
   Cell,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { reportsData } from "@/lib/data";
+// TODO: Fase 1 — migrar a Supabase
+const reportsData = {
+  monthlyRevenue: [] as Array<{ month: string; revenue: number }>,
+  teamPerformance: [] as Array<{ name: string; utilization: number }>,
+  projectsByStatus: [] as Array<{ status: string; count: number; color: string }>,
+};
 
 export function RevenueChart() {
   return (
@@ -134,7 +139,7 @@ export function ProjectStatusChart() {
               paddingAngle={4}
               dataKey="count"
             >
-              {reportsData.projectsByStatus.map((entry, index) => (
+              {reportsData.projectsByStatus.map((entry: { status: string; count: number; color: string }, index: number) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
@@ -150,7 +155,7 @@ export function ProjectStatusChart() {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute space-y-2">
-          {reportsData.projectsByStatus.map((item) => (
+          {reportsData.projectsByStatus.map((item: { status: string; count: number; color: string }) => (
             <div key={item.status} className="flex items-center gap-2">
               <div
                 className="h-3 w-3 rounded-full"

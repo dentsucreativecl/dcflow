@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { IconBar } from "./icon-bar";
 import { ContextPanel } from "./context-panel";
-import { TimeTracker } from "@/components/features/time/time-tracker";
+// TimeTracker eliminado — timer en tiempo real removido
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SidebarV2Props {
@@ -101,7 +101,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
           </button>
         )}
       </div>
-      <TimeTracker />
+      {/* TimeTracker eliminado */}
     </div>
   );
 }

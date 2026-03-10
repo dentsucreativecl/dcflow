@@ -192,7 +192,10 @@ export default function TeamMemberDetailPage() {
           .order("dueDate", { ascending: true });
 
         if (!tasksError && tasksData) {
-          setTasks(tasksData as Task[]);
+          setTasks(tasksData.map((t: any) => ({
+            ...t,
+            project: Array.isArray(t.project) ? t.project[0] ?? null : t.project ?? null,
+          })) as Task[]);
         }
 
         // Fetch time entries for this week
