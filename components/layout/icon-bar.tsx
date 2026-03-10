@@ -30,7 +30,6 @@ import {
     Users,
     FileText,
     BarChart3,
-    Clock,
     Settings,
     LogOut,
 } from "lucide-react";
@@ -46,7 +45,6 @@ const mainIcons = [
     { id: "team", icon: Users, label: "Equipos", href: "/team", preview: "Miembros, roles y disponibilidad" },
     { id: "docs", icon: FileText, label: "Documentos", href: "/docs", preview: "Archivos y documentos compartidos" },
     { id: "reports", icon: BarChart3, label: "Reportes", href: "/reports", preview: "Métricas, KPIs y reportes" },
-    { id: "time", icon: Clock, label: "Tiempo", href: "/time", preview: "Seguimiento de horas y timers" },
 ];
 
 const bottomIcons = [
@@ -166,7 +164,6 @@ export function IconBar({ activeSection, onSectionChange }: IconBarProps) {
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="bg-slate-800 border-slate-700 px-3 py-2">
                                     <p className="font-medium text-white">{item.label}</p>
-                                    {item.preview && <p className="text-xs text-slate-400 mt-0.5">{item.preview}</p>}
                                 </TooltipContent>
                             </Tooltip>
                         );

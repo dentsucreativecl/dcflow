@@ -191,7 +191,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <QuickAccessCard title="Proyectos" count={listCount} icon={Folder} href="/projects" color="#6366f1" />
         <QuickAccessCard title="Mis Tareas" count={activeTasks.length} icon={CheckSquare} href="/my-tasks" color="#f59e0b" />
-        <QuickAccessCard title="Tiempo" count={0} icon={Clock} href="/time" color="#10b981" />
+        <QuickAccessCard title="Reportes" count={0} icon={Clock} href="/reports" color="#10b981" />
         <QuickAccessCard title="Equipo" count={teamCount} icon={Users} href="/team" color="#8b5cf6" />
       </div>
 

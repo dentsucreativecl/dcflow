@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { es } from "date-fns/locale";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,13 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import {
   Popover,
@@ -32,23 +34,32 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const logTimeSchema = z.object({
-  projectId: z.string().min(1, "El proyecto es requerido"),
-  taskId: z.string().optional(),
+  taskId: z.string().min(1, "La tarea es requerida"),
   date: z.date(),
   hours: z.number().min(0.25, "Mínimo 15 minutos").max(24, "Máximo 24 horas"),
   description: z.string().optional(),
-  billable: z.boolean(),
 });
 
 type LogTimeFormData = z.infer<typeof logTimeSchema>;
 
+interface TaskOption {
+  id: string;
+  title: string;
+  listName: string;
+  spaceName: string;
+}
+
 export function LogTimeModal() {
-  const { activeModal, closeModal, projects, tasks, updateTask } = useAppStore();
+  const { activeModal, closeModal, modalData } = useAppStore();
+  const { user } = useAuth();
   const { addToast } = useToast();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [tasks, setTasks] = useState<TaskOption[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   const {
     register,
@@ -60,47 +71,83 @@ export function LogTimeModal() {
   } = useForm<LogTimeFormData>({
     resolver: zodResolver(logTimeSchema),
     defaultValues: {
-      projectId: "",
       taskId: "",
       date: new Date(),
       hours: 1,
       description: "",
-      billable: true,
     },
   });
 
   const date = watch("date");
-  const projectId = watch("projectId");
-
-  // Filter tasks by selected project
-  const filteredTasks = tasks.filter((task) => task.projectId === projectId);
-
+  const taskId = watch("taskId");
   const isOpen = activeModal === "log-time";
 
+  // Load tasks when modal opens
   useEffect(() => {
-    if (projectId !== selectedProjectId) {
-      setSelectedProjectId(projectId);
-      setValue("taskId", ""); // Reset task when project changes
+    if (!isOpen) return;
+
+    async function fetchTasks() {
+      setLoadingTasks(true);
+      const supabase = createClient();
+
+      const { data } = await supabase
+        .from("Task")
+        .select("id, title, list:List(name, space:Space(name))")
+        .is("parentId", null)
+        .order("title");
+
+      if (data) {
+        setTasks(data.map((t: any) => {
+          const list = Array.isArray(t.list) ? t.list[0] : t.list;
+          const space = list ? (Array.isArray(list.space) ? list.space[0] : list.space) : null;
+          return {
+            id: t.id,
+            title: t.title,
+            listName: list?.name || "Sin lista",
+            spaceName: space?.name || "Sin espacio",
+          };
+        }));
+      }
+
+      // Pre-select task if provided in modalData
+      if (modalData?.taskId) {
+        setValue("taskId", modalData.taskId);
+      }
+
+      setLoadingTasks(false);
     }
-  }, [projectId, selectedProjectId, setValue]);
+
+    fetchTasks();
+  }, [isOpen, modalData, setValue]);
 
   const handleClose = () => {
     reset();
-    setSelectedProjectId("");
     closeModal();
   };
 
   const onSubmit = async (data: LogTimeFormData) => {
+    if (!user) {
+      addToast({ title: "Error", description: "No autenticado", type: "error" });
+      return;
+    }
+
+    const supabase = createClient();
+
     try {
-      // If task is selected, update the task's logged hours
-      if (data.taskId) {
-        const task = tasks.find((t) => t.id === data.taskId);
-        if (task) {
-          updateTask(data.taskId, {
-            loggedHours: task.loggedHours + data.hours,
-          });
-        }
-      }
+      const { error } = await supabase
+        .from("TimeEntry")
+        .insert({
+          id: crypto.randomUUID(),
+          taskId: data.taskId,
+          userId: user.id,
+          hours: data.hours,
+          date: data.date.toISOString().split("T")[0],
+          description: data.description || null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+      if (error) throw error;
 
       addToast({
         title: "Tiempo registrado",
@@ -108,11 +155,13 @@ export function LogTimeModal() {
         type: "success",
       });
 
+      window.dispatchEvent(new CustomEvent('dcflow:refresh'));
       handleClose();
-    } catch (error) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Error desconocido";
       addToast({
-        title: "Error",
-        description: "Error al registrar tiempo. Inténtalo de nuevo.",
+        title: "Error al registrar tiempo",
+        description: msg,
         type: "error",
       });
     }
@@ -120,6 +169,14 @@ export function LogTimeModal() {
 
   // Quick time buttons
   const quickTimes = [0.5, 1, 2, 4, 8];
+
+  // Group tasks by space
+  const groupedTasks = tasks.reduce((groups, task) => {
+    const key = task.spaceName;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(task);
+    return groups;
+  }, {} as Record<string, TaskOption[]>);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -129,64 +186,40 @@ export function LogTimeModal() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mt-4">
-          {/* Project */}
+          {/* Task */}
           <div className="space-y-2">
             <Label>
-              Proyecto <span className="text-destructive">*</span>
+              Tarea <span className="text-destructive">*</span>
             </Label>
-            <Select onValueChange={(value) => setValue("projectId", value)}>
-              <SelectTrigger
-                className={errors.projectId ? "border-destructive" : ""}
-              >
-                <SelectValue placeholder="Seleccionar proyecto" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: project.color }}
-                      />
-                      {project.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.projectId && (
-              <p className="text-sm text-destructive">
-                {errors.projectId.message}
-              </p>
-            )}
-          </div>
-
-          {/* Task (optional, filtered by project) */}
-          <div className="space-y-2">
-            <Label>Tarea (opcional)</Label>
             <Select
-              disabled={!projectId || filteredTasks.length === 0}
               onValueChange={(value) => setValue("taskId", value)}
+              value={taskId}
+              disabled={loadingTasks}
             >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    !projectId
-                      ? "Selecciona un proyecto primero"
-                      : filteredTasks.length === 0
-                      ? "No hay tareas en este proyecto"
-                      : "Seleccionar tarea"
-                  }
-                />
+              <SelectTrigger className={errors.taskId ? "border-destructive" : ""}>
+                <SelectValue placeholder={loadingTasks ? "Cargando tareas..." : "Seleccionar tarea"} />
               </SelectTrigger>
               <SelectContent>
-                {filteredTasks.map((task) => (
-                  <SelectItem key={task.id} value={task.id}>
-                    {task.title}
-                  </SelectItem>
+                {Object.entries(groupedTasks).map(([spaceName, spaceTasks]) => (
+                  <SelectGroup key={spaceName}>
+                    <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">
+                      {spaceName}
+                    </SelectLabel>
+                    {spaceTasks.map((task) => (
+                      <SelectItem key={task.id} value={task.id}>
+                        <div className="flex flex-col">
+                          <span>{task.title}</span>
+                          <span className="text-xs text-muted-foreground">{task.listName}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
+            {errors.taskId && (
+              <p className="text-sm text-destructive">{errors.taskId.message}</p>
+            )}
           </div>
 
           {/* Date */}
@@ -202,7 +235,7 @@ export function LogTimeModal() {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : "Seleccionar fecha"}
+                  {date ? format(date, "PPP", { locale: es }) : "Seleccionar fecha"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -265,27 +298,20 @@ export function LogTimeModal() {
             />
           </div>
 
-          {/* Billable */}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="billable"
-              defaultChecked
-              onCheckedChange={(checked) =>
-                setValue("billable", checked as boolean)
-              }
-            />
-            <Label htmlFor="billable" className="cursor-pointer">
-              Tiempo facturable
-            </Label>
-          </div>
-
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Registrando..." : "Registrar Tiempo"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Registrando...
+                </>
+              ) : (
+                "Registrar Tiempo"
+              )}
             </Button>
           </div>
         </form>
