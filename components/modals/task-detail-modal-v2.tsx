@@ -831,15 +831,32 @@ export function TaskDetailModalV2() {
 
         const supabase = createClient();
 
+        // DEBUG
+        console.log("[STATUS] taskId:", task.id);
+        console.log("[STATUS] nuevo statusId recibido:", statusId);
+        console.log("[STATUS] statuses disponibles:", statuses);
+        console.log("[STATUS] task.status actual:", task.status);
+
         try {
-            const { error: updateError, count } = await supabase
+            const updateResult = await supabase
                 .from("Task")
                 .update({ statusId })
                 .eq("id", task.id)
-                .select("id", { count: "exact", head: true });
+                .select("id, statusId");
 
+            console.log("[STATUS] resultado UPDATE completo:", JSON.stringify(updateResult, null, 2));
+
+            const { error: updateError, data: updatedRows } = updateResult;
             if (updateError) throw updateError;
-            if (count === 0) throw new Error("RLS bloqueó el UPDATE de estado");
+            if (!updatedRows || updatedRows.length === 0) throw new Error("RLS bloqueó el UPDATE (0 filas afectadas)");
+
+            // Verificar valor en DB tras el UPDATE
+            const { data: dbCheck, error: dbCheckError } = await supabase
+                .from("Task")
+                .select("id, statusId")
+                .eq("id", task.id)
+                .single();
+            console.log("[STATUS] SELECT post-UPDATE:", JSON.stringify({ dbCheck, dbCheckError }, null, 2));
 
             const newStatus = statuses.find(s => s.id === statusId);
             if (newStatus) {
