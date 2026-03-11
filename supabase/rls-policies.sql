@@ -401,23 +401,11 @@ CREATE POLICY "task_insert_space_member"
         )
     );
 
-CREATE POLICY "task_update_space_member"
+CREATE POLICY "task_update_authenticated"
     ON public."Task"
     FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM "List" l
-            WHERE l.id = "listId"
-              AND public.is_space_member(l."spaceId")
-        )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM "List" l
-            WHERE l.id = "listId"
-              AND public.is_space_member(l."spaceId")
-        )
-    );
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
 
 CREATE POLICY "task_delete_space_member"
     ON public."Task"
@@ -598,18 +586,17 @@ CREATE POLICY "comment_delete_space_member"
 -- -----------------------------------------------------------------------------
 -- Access if member of the task's space. Activity is typically read-heavy.
 
-CREATE POLICY "activity_select_space_member"
+CREATE POLICY "activity_select_authenticated"
     ON public."Activity"
     FOR SELECT
-    USING (
-        public.is_space_member(public.task_space_id("taskId"))
-    );
+    USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY "activity_insert_space_member"
+CREATE POLICY "activity_insert_authenticated"
     ON public."Activity"
     FOR INSERT
     WITH CHECK (
-        public.is_space_member(public.task_space_id("taskId"))
+        auth.uid() IS NOT NULL
+        AND "userId" = auth.uid()::text
     );
 
 CREATE POLICY "activity_update_space_member"

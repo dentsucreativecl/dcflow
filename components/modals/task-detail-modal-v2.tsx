@@ -365,15 +365,16 @@ export function TaskDetailModalV2() {
                 // Fetch activities
                 const { data: activitiesData } = await supabase
                     .from("Activity")
-                    .select("id, type, field, oldValue, newValue, createdAt, user:User(id, name)")
+                    .select("id, type, field, oldValue, newValue, createdAt, User!userId(id, name)")
                     .eq("taskId", taskId)
                     .order("createdAt", { ascending: false });
 
                 if (activitiesData) {
-                    setActivities(activitiesData.map(a => ({
-                        ...a,
-                        user: Array.isArray(a.user) ? a.user[0] : a.user
-                    })));
+                    setActivities(activitiesData.map(a => {
+                        const userRaw = (a as any)["User"];
+                        const u = Array.isArray(userRaw) ? userRaw[0] : userRaw;
+                        return { ...a, user: u ?? null };
+                    }));
                 }
 
                 // Fetch statuses for this list
@@ -813,11 +814,15 @@ export function TaskDetailModalV2() {
         const supabase = createClient();
         const { data } = await supabase
             .from("Activity")
-            .select("id, type, field, oldValue, newValue, createdAt, user:User(id, name)")
+            .select("id, type, field, oldValue, newValue, createdAt, User!userId(id, name)")
             .eq("taskId", taskId)
             .order("createdAt", { ascending: false });
         if (data) {
-            setActivities(data.map(a => ({ ...a, user: Array.isArray(a.user) ? a.user[0] : a.user })));
+            setActivities(data.map(a => {
+                const userRaw = (a as any)["User"];
+                const u = Array.isArray(userRaw) ? userRaw[0] : userRaw;
+                return { ...a, user: u ?? null };
+            }));
         }
     };
 
@@ -827,10 +832,14 @@ export function TaskDetailModalV2() {
         const supabase = createClient();
 
         try {
-            await supabase
+            const { error: updateError, count } = await supabase
                 .from("Task")
                 .update({ statusId })
-                .eq("id", task.id);
+                .eq("id", task.id)
+                .select("id", { count: "exact", head: true });
+
+            if (updateError) throw updateError;
+            if (count === 0) throw new Error("RLS bloqueó el UPDATE de estado");
 
             const newStatus = statuses.find(s => s.id === statusId);
             if (newStatus) {
@@ -1036,6 +1045,31 @@ export function TaskDetailModalV2() {
             ]);
             setNewComment("");
             setCommentAttachment(null);
+
+            // Log activity
+            const activityInserts: object[] = [{
+                id: crypto.randomUUID(),
+                taskId: task.id,
+                userId: user.id,
+                type: "COMMENT_ADDED",
+                field: null,
+                oldValue: null,
+                newValue: content.slice(0, 200),
+                createdAt: now,
+            }];
+            if (attachments) {
+                activityInserts.push({
+                    id: crypto.randomUUID(),
+                    taskId: task.id,
+                    userId: user.id,
+                    type: "ATTACHMENT_ADDED",
+                    field: null,
+                    oldValue: null,
+                    newValue: attachments[0].name,
+                    createdAt: now,
+                });
+            }
+            supabase.from("Activity").insert(activityInserts).then(() => reloadActivities(task.id));
 
             // Notify mentions
             createMentionNotifications({
