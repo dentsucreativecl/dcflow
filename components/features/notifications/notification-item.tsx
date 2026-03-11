@@ -60,10 +60,18 @@ export function NotificationItem({
             onMarkAsRead(notification.id);
         }
 
-        // Navigate to entity
-        if (notification.type === "MENTION" && notification.data?.channelSlug) {
-            router.push(`/channels/${notification.data.channelSlug}`);
-            onClose?.();
+        if (notification.type === "MENTION") {
+            // New notifications have data.channelSlug
+            const channelSlug = notification.data?.channelSlug as string | undefined;
+            // Fallback: parse "#canal-name" from title like "X te mencionó en #canal-name"
+            const fallbackSlug = !channelSlug
+                ? notification.title.match(/#([\w-]+)/)?.[1]
+                : undefined;
+            const slug = channelSlug ?? fallbackSlug;
+            if (slug) {
+                router.push(`/channels/${slug}`);
+                onClose?.();
+            }
         } else if (notification.entityType === "task" && notification.entityId) {
             openModal("task-detail-v2", { taskId: notification.entityId });
             onClose?.();
