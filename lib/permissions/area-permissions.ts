@@ -21,8 +21,8 @@ export function resolveAreaPermission(
     spaceAreas: string[] | null | undefined
 ): 'EDIT' | 'READ_ONLY' {
     if (userRole === 'SUPER_ADMIN') return 'EDIT';
-    // ADMIN with no areas assigned = Global Admin (full access)
-    if (userRole === 'ADMIN' && (!userAreas || userAreas.length === 0)) return 'EDIT';
+    // ADMIN always has full edit access regardless of assigned areas
+    if (userRole === 'ADMIN') return 'EDIT';
     // Cuentas has cross-area edit access
     if (userAreas?.includes('Cuentas')) return 'EDIT';
     // Space with no areas = open for everyone

@@ -304,11 +304,12 @@ export default function ChannelPage() {
     setTimeout(scrollToBottom, 50);
 
     try {
+      const finalContent = content || (attachments ? `📎 ${attachments[0].name}` : "");
       const { error } = await supabase.from("Message").insert({
         id: msgId,
         channelId: channel.id,
         userId: user.id,
-        content: content || (attachments ? `📎 ${attachments[0].name}` : ""),
+        content: finalContent,
         attachments: attachments || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -317,6 +318,28 @@ export default function ChannelPage() {
       if (error) {
         log.error("Error sending message:", error);
         setMessages((prev) => prev.filter((m) => m.id !== msgId));
+        return;
+      }
+
+      // ── Mention notifications ──────────────────────────────────────────
+      const mentionMatches = [...finalContent.matchAll(/@(\S+)/g)].map(m => m[1].toLowerCase());
+      if (mentionMatches.length > 0) {
+        const mentionedMembers = channelMembers.filter(
+          (m) => mentionMatches.includes(m.name.split(" ")[0].toLowerCase()) && m.userId !== user.id
+        );
+        if (mentionedMembers.length > 0) {
+          const notifications = mentionedMembers.map((m) => ({
+            id: crypto.randomUUID(),
+            type: "MENTION",
+            userId: m.userId,
+            actorId: user.id,
+            title: `${user.name} te mencionó en #${channel.name}`,
+            message: finalContent.length > 100 ? finalContent.slice(0, 97) + "…" : finalContent,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          }));
+          await supabase.from("Notification").insert(notifications);
+        }
       }
     } catch (err) {
       log.error("Error sending message:", err);
