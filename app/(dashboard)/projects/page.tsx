@@ -159,29 +159,28 @@ export default function ProjectsPage() {
 
       // Fetch admin filter data (people and teams with task assignments)
       if (isAdmin) {
-        const [assignmentsRes, teamsRes, teamMembersRes] = await Promise.all([
-          supabase.from("TaskAssignment").select("userId, User(id, name), Task(listId)"),
+        const [allUsersRes, assignmentsRes, teamsRes, teamMembersRes] = await Promise.all([
+          supabase.from("User").select("id, name").eq("isActive", true).order("name"),
+          supabase.from("TaskAssignment").select("userId, Task(listId)"),
           supabase.from("Team").select("id, name").order("name"),
           supabase.from("TeamMember").select("teamId, userId"),
         ]);
 
-        // Build person -> listIds map
+        // Build person -> listIds map from assignments
         const pMap = new Map<string, Set<string>>();
-        const peopleMap = new Map<string, string>();
         if (assignmentsRes.data) {
           for (const a of assignmentsRes.data as Array<Record<string, unknown>>) {
-            const u = a.User as Record<string, unknown> | null;
+            const userId = a.userId as string;
             const t = a.Task as Record<string, unknown> | null;
-            if (u && t) {
-              const userId = u.id as string;
+            if (t) {
               const listId = t.listId as string;
-              peopleMap.set(userId, u.name as string);
               if (!pMap.has(userId)) pMap.set(userId, new Set());
               pMap.get(userId)!.add(listId);
             }
           }
         }
-        setPeople(Array.from(peopleMap.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)));
+        // Use ALL active users for the people list (not just those with assignments)
+        setPeople((allUsersRes.data || []).map((u: any) => ({ id: u.id, name: u.name })));
         setPersonListMap(pMap);
 
         // Build team -> listIds map (via team members -> assignments)

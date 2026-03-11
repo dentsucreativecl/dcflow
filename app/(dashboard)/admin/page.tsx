@@ -496,7 +496,7 @@ export default function AdminPage() {
 
             {/* ═══ OVERVIEW ═══ */}
             {activeSection === "overview" && (
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-6 pb-8">
                     {/* Stats Grid */}
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         {stats.map((stat) => {
@@ -588,7 +588,7 @@ export default function AdminPage() {
                             Nuevo Cliente
                         </Button>
                     </div>
-                    <div className="overflow-y-auto flex-1">
+                    <div className="overflow-y-auto flex-1 pb-8">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -671,7 +671,7 @@ export default function AdminPage() {
                             Nuevo Proyecto
                         </Button>
                     </div>
-                    <div className="overflow-y-auto flex-1">
+                    <div className="overflow-y-auto flex-1 pb-8">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -743,7 +743,7 @@ export default function AdminPage() {
                             Invitar
                         </Button>
                     </div>
-                    <div className="overflow-y-auto flex-1">
+                    <div className="overflow-y-auto flex-1 pb-8">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -871,7 +871,7 @@ export default function AdminPage() {
                             Nuevo Canal
                         </Button>
                     </div>
-                    <div className="overflow-y-auto flex-1">
+                    <div className="overflow-y-auto flex-1 pb-8">
                     <Table>
                         <TableHeader>
                             <TableRow>
