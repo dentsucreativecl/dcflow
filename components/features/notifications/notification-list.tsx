@@ -9,7 +9,8 @@ interface Notification {
     type: string;
     title: string;
     message: string | null;
-    read: boolean;
+    isRead: boolean;
+    data?: Record<string, unknown> | null;
     entityType: string | null;
     entityId: string | null;
     createdAt: string;
@@ -24,14 +25,16 @@ interface NotificationListProps {
     notifications: Notification[];
     onMarkAsRead: (id: string) => void;
     onMarkAllAsRead: () => void;
+    onClose?: () => void;
 }
 
 export function NotificationList({
     notifications,
     onMarkAsRead,
     onMarkAllAsRead,
+    onClose,
 }: NotificationListProps) {
-    const unreadCount = notifications.filter((n) => !n.read).length;
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
 
     return (
         <div className="flex flex-col h-full">
@@ -58,6 +61,7 @@ export function NotificationList({
                                 key={notification.id}
                                 notification={notification}
                                 onMarkAsRead={onMarkAsRead}
+                                onClose={onClose}
                             />
                         ))}
                     </div>

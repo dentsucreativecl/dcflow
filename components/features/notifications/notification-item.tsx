@@ -18,7 +18,8 @@ interface Notification {
     type: string;
     title: string;
     message: string | null;
-    read: boolean;
+    isRead: boolean;
+    data?: Record<string, unknown> | null;
     entityType: string | null;
     entityId: string | null;
     createdAt: string;
@@ -32,14 +33,15 @@ interface Notification {
 interface NotificationItemProps {
     notification: Notification;
     onMarkAsRead: (id: string) => void;
+    onClose?: () => void;
 }
 
 const iconMap: Record<string, any> = {
-    mention: AtSign,
-    task_assigned: UserPlus,
-    task_updated: AlertCircle,
-    task_completed: CheckCircle,
-    comment: MessageSquare,
+    MENTION: AtSign,
+    TASK_ASSIGNED: UserPlus,
+    TASK_UPDATED: AlertCircle,
+    TASK_COMPLETED: CheckCircle,
+    COMMENT_ADDED: MessageSquare,
 };
 
 import { useAppStore } from "@/lib/store";
@@ -47,19 +49,24 @@ import { useAppStore } from "@/lib/store";
 export function NotificationItem({
     notification,
     onMarkAsRead,
+    onClose,
 }: NotificationItemProps) {
     const router = useRouter();
     const { openModal } = useAppStore();
     const Icon = iconMap[notification.type] || MessageSquare;
 
     const handleClick = () => {
-        if (!notification.read) {
+        if (!notification.isRead) {
             onMarkAsRead(notification.id);
         }
 
         // Navigate to entity
-        if (notification.entityType === "task" && notification.entityId) {
+        if (notification.type === "MENTION" && notification.data?.channelSlug) {
+            router.push(`/channels/${notification.data.channelSlug}`);
+            onClose?.();
+        } else if (notification.entityType === "task" && notification.entityId) {
             openModal("task-detail-v2", { taskId: notification.entityId });
+            onClose?.();
         }
     };
 
@@ -68,7 +75,7 @@ export function NotificationItem({
             onClick={handleClick}
             className={cn(
                 "p-4 hover:bg-muted/50 cursor-pointer transition-colors",
-                !notification.read && "bg-primary/5"
+                !notification.isRead && "bg-primary/5"
             )}
         >
             <div className="flex gap-3">
@@ -87,7 +94,7 @@ export function NotificationItem({
                         <p
                             className={cn(
                                 "text-sm",
-                                !notification.read && "font-medium"
+                                !notification.isRead && "font-medium"
                             )}
                         >
                             {notification.title}
@@ -112,7 +119,7 @@ export function NotificationItem({
                 </div>
 
                 {/* Unread indicator */}
-                {!notification.read && (
+                {!notification.isRead && (
                     <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2" />
                 )}
             </div>

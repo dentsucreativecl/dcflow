@@ -103,9 +103,7 @@ export function TopHeader({ className }: TopHeaderProps) {
                         >
                             <Inbox className="h-5 w-5" />
                             {inboxCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground px-1">
-                                    {inboxCount > 9 ? "9+" : inboxCount}
-                                </span>
+                                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
                             )}
                         </Button>
                     </Link>

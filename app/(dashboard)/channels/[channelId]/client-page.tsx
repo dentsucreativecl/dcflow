@@ -336,6 +336,7 @@ export default function ChannelPage() {
             title: `${user.name} te mencionó en #${channel.name}`,
             message: finalContent.length > 100 ? finalContent.slice(0, 97) + "…" : finalContent,
             isRead: false,
+            data: { channelSlug: slug },
             createdAt: new Date().toISOString(),
           }));
           await supabase.from("Notification").insert(notifications);
