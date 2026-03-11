@@ -337,15 +337,22 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
+        console.log("KANBAN HANDLER EJECUTADO", { active: active?.id, over: over?.id });
         setActiveId(null);
 
-        if (!over || !active) return;
+        if (!over || !active) {
+            console.log("KANBAN: sin over o active, abortando");
+            return;
+        }
 
         const taskId = active.id as string;
         const overId = over.id as string;
 
         const task = tasks.find(t => t.id === taskId);
-        if (!task) return;
+        if (!task) {
+            console.log("KANBAN: tarea no encontrada para id:", taskId);
+            return;
+        }
 
         // Determine target status
         const isOverStatus = statuses.some(s => s.id === overId);
