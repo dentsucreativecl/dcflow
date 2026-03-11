@@ -344,15 +344,22 @@ export function TaskDetailModalV2() {
                 // Fetch comments
                 const { data: commentsData } = await supabase
                     .from("Comment")
-                    .select("id, content, attachments, createdAt, user:User(id, name, avatarUrl)")
+                    .select("id, content, createdAt, User!userId(id, name, avatarUrl)")
                     .eq("taskId", taskId)
                     .order("createdAt", { ascending: false });
 
                 if (commentsData) {
-                    setComments(commentsData.map(c => ({
-                        ...c,
-                        user: Array.isArray(c.user) ? c.user[0] : c.user
-                    })));
+                    setComments(commentsData.map(c => {
+                        const userRaw = (c as any)["User"];
+                        const u = Array.isArray(userRaw) ? userRaw[0] : userRaw;
+                        return {
+                            id: c.id,
+                            content: c.content,
+                            attachments: null,
+                            createdAt: c.createdAt,
+                            user: { id: u?.id ?? "", name: u?.name ?? "Usuario", avatarUrl: u?.avatarUrl ?? null },
+                        };
+                    }));
                 }
 
                 // Fetch activities
@@ -1010,11 +1017,10 @@ export function TaskDetailModalV2() {
                     taskId: task.id,
                     userId: user.id,
                     content,
-                    attachments: attachments || undefined,
                     createdAt: now,
                     updatedAt: now,
                 })
-                .select("id, content, attachments, createdAt")
+                .select("id, content, createdAt")
                 .single();
 
             if (error) throw error;
@@ -1022,7 +1028,7 @@ export function TaskDetailModalV2() {
             setComments([
                 {
                     ...data,
-                    attachments: data.attachments as CommentAttachment[] | null,
+                    attachments: null,
                     user: { id: user.id, name: user.name, avatarUrl: user.avatar || null },
                 },
                 ...comments,
