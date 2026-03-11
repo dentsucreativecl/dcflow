@@ -1,17 +1,22 @@
 "use client";
 
-
-
+import { useRef, useState } from "react";
+import Image from "next/image";
 import { useAuth } from "@/contexts/auth-context";
 import { Role, ROLE_LABELS, ROLE_DESCRIPTIONS } from "@/lib/auth/roles";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PurgeDataCard } from "@/components/features/purge-data-card";
 import { CsvImportCard } from "@/components/features/csv-import-card";
 import { OutlookIntegration } from "@/components/features/outlook-integration";
 import { AreaManagementCard } from "@/components/features/area-management-card";
-import { Shield, User, Briefcase, Users2, ArrowRight } from "lucide-react";
+import { Shield, User, Briefcase, Users2, Camera, Loader2, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
+import { getGendered } from "@/lib/utils/gender";
 
 const roleIcons: Record<Role, any> = {
   admin: Shield,
@@ -27,7 +32,47 @@ const roleColors: Record<Role, string> = {
   client: "bg-studio-success/20 text-studio-success",
 };
 export default function ProfilePage() {
-  const { user, loading, isAdmin, isSuperAdmin: isSA } = useAuth();
+  const { user, loading, isAdmin, isSuperAdmin: isSA, setUser } = useAuth();
+  const { addToast } = useToast();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savingGender, setSavingGender] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `avatars/${user.id}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('attachments').upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+      const avatarUrl = urlData.publicUrl;
+      const { error: dbErr } = await supabase.from('User').update({ avatarUrl }).eq('id', user.id);
+      if (dbErr) throw dbErr;
+      setUser({ ...user, avatarUrl });
+      addToast({ title: 'Foto actualizada', type: 'success' });
+    } catch (err) {
+      addToast({ title: 'Error al subir foto', type: 'error' });
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleGenderChange = async (gender: string) => {
+    if (!user) return;
+    setSavingGender(true);
+    try {
+      const supabase = createClient();
+      await supabase.from('User').update({ gender }).eq('id', user.id);
+      setUser({ ...user, gender });
+    } finally {
+      setSavingGender(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -42,6 +87,7 @@ export default function ProfilePage() {
   const isSuperAdmin = user.supabaseRole === 'SUPER_ADMIN';
   const canManageSettings = isAdmin || isSA;
   const RoleIcon = isSuperAdmin ? Shield : roleIcons[user.role];
+  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <div className="flex h-full flex-col gap-6 animate-fade-in">
@@ -57,9 +103,23 @@ export default function ProfilePage() {
         <Card className="p-6">
           <h3 className="font-semibold text-foreground mb-4">Información del Usuario</h3>
           <div className="space-y-4">
-            <div>
-              <Label className="text-muted-foreground">Nombre</Label>
-              <p className="text-foreground font-medium">{user.name}</p>
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="h-16 w-16 rounded-full overflow-hidden bg-gradient-to-br from-[#F2A6A6] to-[#17385C] flex items-center justify-center text-white text-xl font-semibold">
+                  {user.avatarUrl
+                    ? <Image src={user.avatarUrl} alt={user.name} width={64} height={64} className="object-cover w-full h-full" />
+                    : initials}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">{user.name}</p>
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                <Button variant="outline" size="sm" className="mt-1 gap-1.5" onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}>
+                  {uploadingAvatar ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                  Cambiar foto
+                </Button>
+              </div>
             </div>
             <div>
               <Label className="text-muted-foreground">Correo</Label>
@@ -79,6 +139,24 @@ export default function ProfilePage() {
                   {isSuperAdmin ? "Super Admin" : ROLE_LABELS[user.role]}
                 </Badge>
               </div>
+            </div>
+            <div>
+              <Label className="text-muted-foreground">Cargo en género</Label>
+              <Select value={user.gender || 'MASCULINE'} onValueChange={handleGenderChange} disabled={savingGender}>
+                <SelectTrigger className="w-44 mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MASCULINE">Masculino</SelectItem>
+                  <SelectItem value="FEMININE">Femenino</SelectItem>
+                  <SelectItem value="NEUTRAL">Neutro</SelectItem>
+                </SelectContent>
+              </Select>
+              {user.department && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Se mostrará como: <span className="font-medium">{getGendered(user.department, user.gender || 'MASCULINE')}</span>
+                </p>
+              )}
             </div>
           </div>
         </Card>

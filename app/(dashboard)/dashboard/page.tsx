@@ -176,7 +176,7 @@ export default function DashboardPage() {
   return (
     <div className="flex h-full flex-col gap-6 animate-fade-in-up">
       <PageHeader
-        title={`Bienvenido, ${user?.name?.split(" ")[0] || "Usuario"}`}
+        title={`Hola, ${user?.name?.split(" ")[0] || "Usuario"}`}
         description={description}
         showNewButton
         newButtonText="Nuevo Proyecto"

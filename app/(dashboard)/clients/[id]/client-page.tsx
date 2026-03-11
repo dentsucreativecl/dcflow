@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ChevronRight, Edit, Loader2, FolderKanban, Users, X,
+  ChevronRight, Edit, Loader2, FolderKanban, Users, X, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,6 +27,7 @@ interface SpaceDetail {
   name: string;
   color: string;
   slug: string;
+  avatarUrl?: string | null;
 }
 
 interface ListItem {
@@ -176,6 +178,31 @@ export default function ClientDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [editOpen, setEditOpen] = useState(false);
   const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !space) return;
+    setUploadingLogo(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `logos/${space.id}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('attachments').upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+      const avatarUrl = urlData.publicUrl;
+      await supabase.from('Space').update({ avatarUrl }).eq('id', space.id);
+      setSpace({ ...space, avatarUrl });
+      addToast({ title: 'Logo actualizado', type: 'success' });
+    } catch {
+      addToast({ title: 'Error al subir logo', type: 'error' });
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -184,7 +211,7 @@ export default function ClientDetailPage() {
     // Fetch space
     const { data: spaceData } = await supabase
       .from("Space")
-      .select("id, name, color, slug")
+      .select("id, name, color, slug, avatarUrl")
       .eq("id", id)
       .single();
 
@@ -335,11 +362,27 @@ export default function ClientDetailPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div
-              className="h-14 w-14 rounded-xl flex items-center justify-center text-white text-xl font-semibold shrink-0"
-              style={{ backgroundColor: space.color }}
-            >
-              {getInitials(space.name)}
+            <div className="relative group shrink-0">
+              <div
+                className="h-14 w-14 rounded-xl overflow-hidden flex items-center justify-center text-white text-xl font-semibold"
+                style={{ backgroundColor: space.avatarUrl ? undefined : space.color }}
+              >
+                {space.avatarUrl
+                  ? <Image src={space.avatarUrl} alt={space.name} width={56} height={56} className="object-cover w-full h-full" />
+                  : getInitials(space.name)}
+              </div>
+              {(isAdmin || isSuperAdmin) && (
+                <>
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    disabled={uploadingLogo}
+                  >
+                    {uploadingLogo ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <Camera className="h-5 w-5 text-white" />}
+                  </button>
+                </>
+              )}
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-foreground">{space.name}</h1>

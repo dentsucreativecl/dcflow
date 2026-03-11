@@ -116,8 +116,10 @@ export function TopHeader({ className }: TopHeaderProps) {
                     {/* User Avatar */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#F2A6A6] to-[#17385C] text-white text-sm font-medium cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-                                {initials}
+                            <button className="ml-1 flex h-8 w-8 items-center justify-center rounded-full overflow-hidden bg-gradient-to-br from-[#F2A6A6] to-[#17385C] text-white text-sm font-medium cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                                {user?.avatarUrl
+                                    ? <Image src={user.avatarUrl} alt={user.name} width={32} height={32} className="object-cover w-full h-full" />
+                                    : initials}
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">

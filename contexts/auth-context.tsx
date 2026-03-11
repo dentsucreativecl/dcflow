@@ -18,12 +18,14 @@ export interface User {
     email: string;
     role: Role;
     avatar?: string;
+    avatarUrl?: string;
     department?: string;
     userAreas?: string[];
     supabaseRole?: UserRole;
     userType?: UserType;
     weeklyCapacity?: number;
     isActive?: boolean;
+    gender?: string;
 }
 
 // Re-export unified Permission type from lib/auth/permissions
@@ -49,7 +51,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Columns to select from User table (NEVER use select('*') to avoid exposing sensitive data)
-const USER_SELECT_COLUMNS = 'id, email, name, role, userType, avatarUrl, weeklyCapacity, isActive, department, userAreas';
+const USER_SELECT_COLUMNS = 'id, email, name, role, userType, avatarUrl, weeklyCapacity, isActive, department, userAreas, gender';
 
 // Convert Supabase roles to legacy role system
 function mapSupabaseRoleToLegacy(role: UserRole, userType: UserType): Role {
@@ -86,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isActive?: boolean;
         department?: string | null;
         userAreas?: string[] | null;
+        gender?: string | null;
     }): User => {
         const legacyRole = mapSupabaseRoleToLegacy(
             profile.role as UserRole,
@@ -97,12 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: profile.email,
             role: legacyRole,
             avatar: getInitials(profile.name),
+            avatarUrl: profile.avatarUrl ?? undefined,
             supabaseRole: profile.role as UserRole,
             userType: profile.userType as UserType,
             weeklyCapacity: profile.weeklyCapacity ?? 40,
             isActive: profile.isActive ?? true,
             department: profile.department ?? undefined,
             userAreas: profile.userAreas ?? [],
+            gender: profile.gender ?? 'MASCULINE',
         };
     }, []);
 
