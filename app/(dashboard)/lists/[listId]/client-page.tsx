@@ -56,6 +56,7 @@ import { AutomationManager } from "@/components/features/automation-manager";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/components/ui/toast";
 import { useSpaceAreaPermission } from "@/lib/permissions/area-permissions";
+import Link from "next/link";
 
 interface Task {
     id: string;
@@ -614,16 +615,24 @@ export default function ListPage() {
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <span>Proyectos</span>
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-1 flex-wrap">
+                        <Link href="/dashboard" className="hover:text-foreground transition-colors">Inicio</Link>
+                        <span>›</span>
+                        <Link href="/projects" className="hover:text-foreground transition-colors">Proyectos</Link>
                         {list?.space && (
                             <>
-                                <span>/</span>
+                                <span>›</span>
                                 <span
-                                    className="h-2 w-2 rounded-full inline-block"
+                                    className="h-2 w-2 rounded-full inline-block flex-shrink-0"
                                     style={{ backgroundColor: list.space.color }}
                                 />
-                                <span>{list.space.name}</span>
+                                <Link href="/projects" className="hover:text-foreground transition-colors">{list.space.name}</Link>
+                            </>
+                        )}
+                        {list?.folder && (
+                            <>
+                                <span>›</span>
+                                <span className="hover:text-foreground">{list.folder.name}</span>
                             </>
                         )}
                     </div>
