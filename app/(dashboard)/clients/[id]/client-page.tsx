@@ -12,11 +12,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
+import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
@@ -45,11 +43,6 @@ interface MemberItem {
   avatarInitials: string;
 }
 
-interface InternalUser {
-  id: string;
-  name: string;
-}
-
 // ── Color Preset ──────────────────────────────────────────────────────────────
 
 const PRESET_COLORS = [
@@ -61,97 +54,6 @@ const PRESET_COLORS = [
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-}
-
-// ── Edit Modal ─────────────────────────────────────────────────────────────────
-
-interface EditModalProps {
-  space: SpaceDetail;
-  accountManagerId: string;
-  users: InternalUser[];
-  onSave: (name: string, color: string, accountManagerId: string) => Promise<void>;
-  onClose: () => void;
-}
-
-function EditClientModal({ space, accountManagerId, users, onSave, onClose }: EditModalProps) {
-  const [name, setName] = useState(space.name);
-  const [color, setColor] = useState(space.color);
-  const [managerId, setManagerId] = useState(accountManagerId);
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setSaving(true);
-    await onSave(name.trim(), color, managerId);
-    setSaving(false);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-background rounded-xl shadow-xl border p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold">Editar Cliente</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
-            <Input
-              id="edit-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Color de avatar</Label>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={cn(
-                    "h-7 w-7 rounded-full border-2 transition-all",
-                    color === c ? "border-foreground scale-110" : "border-transparent hover:scale-105"
-                  )}
-                  style={{ backgroundColor: c }}
-                  aria-label={c}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Cuenta asignada</Label>
-            <Select value={managerId || "none"} onValueChange={(v) => setManagerId(v === "none" ? "" : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sin asignar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin asignar</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 }
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
@@ -169,6 +71,7 @@ export default function ClientDetailPage() {
 
   const { isAdmin, isSuperAdmin } = useAuth();
   const { addToast } = useToast();
+  const { openModal } = useAppStore();
 
   const [space, setSpace] = useState<SpaceDetail | null>(null);
   const [lists, setLists] = useState<ListItem[]>([]);
@@ -176,8 +79,6 @@ export default function ClientDetailPage() {
   const [accountManager, setAccountManager] = useState<MemberItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("projects");
-  const [editOpen, setEditOpen] = useState(false);
-  const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -288,52 +189,6 @@ export default function ClientDetailPage() {
     };
   }, [fetchData]);
 
-  // Fetch internal users for edit modal (load once)
-  useEffect(() => {
-    if (!isAdmin && !isSuperAdmin) return;
-    const supabase = createClient();
-    supabase
-      .from("User")
-      .select("id, name")
-      .neq("userType", "GUEST")
-      .eq("isActive", true)
-      .order("name")
-      .then(({ data }) => { if (data) setInternalUsers(data as InternalUser[]); });
-  }, [isAdmin, isSuperAdmin]);
-
-  const handleSaveEdit = async (name: string, color: string, managerId: string) => {
-    if (!space) return;
-    const supabase = createClient();
-
-    const { error } = await supabase
-      .from("Space")
-      .update({ name, color, updatedAt: new Date().toISOString() })
-      .eq("id", space.id);
-
-    if (error) {
-      addToast({ title: "Error al guardar", description: error.message, type: "error" });
-      return;
-    }
-
-    // Update OWNER member
-    const prevOwner = members.find((m) => m.role === "OWNER");
-    if (prevOwner && prevOwner.userId !== managerId) {
-      await supabase.from("SpaceMember")
-        .update({ role: "MEMBER" })
-        .eq("spaceId", space.id)
-        .eq("userId", prevOwner.userId);
-    }
-    if (managerId && managerId !== prevOwner?.userId) {
-      await supabase.from("SpaceMember").upsert({
-        spaceId: space.id, userId: managerId, role: "OWNER",
-      });
-    }
-
-    addToast({ title: "Cliente actualizado", type: "success" });
-    setEditOpen(false);
-    fetchData();
-  };
-
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -395,7 +250,7 @@ export default function ClientDetailPage() {
             </div>
           </div>
           {(isAdmin || isSuperAdmin) && (
-            <Button variant="outline" className="gap-2" onClick={() => setEditOpen(true)}>
+            <Button variant="outline" className="gap-2" onClick={() => openModal("edit-client", { clientId: id })}>
               <Edit className="h-4 w-4" />
               Editar
             </Button>
@@ -494,15 +349,6 @@ export default function ClientDetailPage() {
         )}
       </div>
 
-      {editOpen && (
-        <EditClientModal
-          space={space}
-          accountManagerId={accountManager?.userId || ""}
-          users={internalUsers}
-          onSave={handleSaveEdit}
-          onClose={() => setEditOpen(false)}
-        />
-      )}
     </>
   );
 }

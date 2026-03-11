@@ -11,6 +11,8 @@ import { es } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
@@ -123,6 +125,14 @@ export default function AdminPage() {
     const [deactivateTaskCount, setDeactivateTaskCount] = useState(0);
     const [deactivateTransferTo, setDeactivateTransferTo] = useState<string>("");
     const [deactivateLoading, setDeactivateLoading] = useState(false);
+
+    // Edit member modal state
+    const [editUser, setEditUser] = useState<UserRow | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editDepartment, setEditDepartment] = useState("");
+    const [editUserAreas, setEditUserAreas] = useState("");
+    const [editGender, setEditGender] = useState("MASCULINE");
+    const [savingEdit, setSavingEdit] = useState(false);
 
     // Active tab
     const [activeSection, setActiveSection] = useState<"overview" | "clients" | "projects" | "members" | "channels">("overview");
@@ -330,6 +340,39 @@ export default function AdminPage() {
         }
     };
 
+    const openEditUser = (u: UserRow) => {
+        setEditUser(u);
+        setEditName(u.name);
+        setEditDepartment(u.department || "");
+        setEditUserAreas((u.userAreas || []).join(", "));
+        setEditGender(u.gender || "MASCULINE");
+    };
+
+    const handleSaveProfile = async () => {
+        if (!editUser) return;
+        setSavingEdit(true);
+        try {
+            const areas = editUserAreas.split(",").map(a => a.trim()).filter(Boolean);
+            const res = await fetch(`/api/admin/users/${editUser.id}/profile`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: editName, department: editDepartment || null, userAreas: areas, gender: editGender }),
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            setUsers((prev) => prev.map((u) => u.id === editUser.id
+                ? { ...u, name: editName, department: editDepartment || null, userAreas: areas, gender: editGender }
+                : u
+            ));
+            addToast({ title: "Miembro actualizado", type: "success" });
+            setEditUser(null);
+        } catch (err) {
+            console.error("Error saving profile:", err);
+            addToast({ title: "Error al guardar", type: "error" });
+        } finally {
+            setSavingEdit(false);
+        }
+    };
+
     const handleStatusToggle = async (userId: string, currentActive: boolean) => {
         setUpdatingUser(userId);
         try {
@@ -480,7 +523,7 @@ export default function AdminPage() {
     ];
 
     const roleOptions = isSuperAdmin
-        ? ["MEMBER", "PM", "ADMIN"]
+        ? ["MEMBER", "PM", "ADMIN", "SUPER_ADMIN"]
         : ["MEMBER", "PM"];
 
     return (
@@ -785,7 +828,7 @@ export default function AdminPage() {
                                 {users.map((u) => {
                                     const isSelf = u.id === user?.id;
                                     const isSA = u.role === "SUPER_ADMIN";
-                                    const canModify = isSuperAdmin && !isSelf && !isSA;
+                                    const canModify = isSuperAdmin ? !isSelf : (!isSelf && !isSA && u.role !== 'ADMIN');
 
                                     return (
                                         <TableRow key={u.id}>
@@ -840,6 +883,17 @@ export default function AdminPage() {
                                             </TableCell>
                                             <TableCell className="text-right pr-5">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    {canModify && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-7 text-xs"
+                                                            onClick={() => openEditUser(u)}
+                                                        >
+                                                            <Edit3 className="h-3 w-3 mr-1" />
+                                                            Editar
+                                                        </Button>
+                                                    )}
                                                     {canModify && (
                                                         <>
                                                             <Select
@@ -1034,6 +1088,56 @@ export default function AdminPage() {
                                     <UserX className="h-4 w-4 mr-2" />
                                 )}
                                 Desactivar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ═══ EDIT MEMBER MODAL ═══ */}
+            {editUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => !savingEdit && setEditUser(null)} />
+                    <div className="relative bg-background rounded-xl shadow-xl border p-6 w-full max-w-md mx-4">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-lg font-semibold">Editar Miembro</h2>
+                            <Button variant="ghost" size="icon" onClick={() => !savingEdit && setEditUser(null)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <Label>Nombre</Label>
+                                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Cargo</Label>
+                                <Input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} placeholder="Ej: Director de Arte" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Áreas (separadas por coma)</Label>
+                                <Input value={editUserAreas} onChange={(e) => setEditUserAreas(e.target.value)} placeholder="Ej: Diseño, Creatividad" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Género gramatical del cargo</Label>
+                                <Select value={editGender} onValueChange={setEditGender}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="MASCULINE">Masculino</SelectItem>
+                                        <SelectItem value="FEMININE">Femenino</SelectItem>
+                                        <SelectItem value="NEUTRAL">Neutro</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <Button variant="outline" disabled={savingEdit} onClick={() => setEditUser(null)}>
+                                Cancelar
+                            </Button>
+                            <Button disabled={savingEdit || !editName.trim()} onClick={handleSaveProfile}>
+                                {savingEdit ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                Guardar
                             </Button>
                         </div>
                     </div>

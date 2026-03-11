@@ -14,6 +14,7 @@ import {
     Home,
     CheckSquare,
     Briefcase,
+    Building2,
     Hash,
     Users,
     BarChart2,
@@ -192,6 +193,20 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             <item.icon className="h-5 w-5" />
                         </Link>
                     ))}
+                    {(user?.supabaseRole === "SUPER_ADMIN" || user?.supabaseRole === "ADMIN") && (
+                        <Link
+                            href="/clients"
+                            className={cn(
+                                "flex items-center justify-center h-9 w-9 rounded-md transition-colors",
+                                pathname === "/clients" || pathname.startsWith("/clients/")
+                                    ? "bg-accent text-accent-foreground"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            )}
+                            title="Clientes"
+                        >
+                            <Building2 className="h-5 w-5" />
+                        </Link>
+                    )}
                 </nav>
             </div>
         );
@@ -231,6 +246,20 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             </Link>
                         );
                     })}
+                    {(user?.supabaseRole === "SUPER_ADMIN" || user?.supabaseRole === "ADMIN") && (
+                        <Link
+                            href="/clients"
+                            className={cn(
+                                "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
+                                pathname === "/clients" || pathname.startsWith("/clients/")
+                                    ? "bg-accent text-accent-foreground font-medium"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            )}
+                        >
+                            <Building2 className="h-4 w-4 shrink-0" />
+                            Clientes
+                        </Link>
+                    )}
                 </nav>
 
                 <div className="mx-3 border-b border-border" />

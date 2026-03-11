@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   // Fetch spaces
   const { data: spaces } = await admin
     .from('Space')
-    .select('id, name, color, icon, isArchived')
+    .select('id, name, color, icon, isArchived, avatarUrl')
     .in('id', spaceIds)
     .order('name')
 

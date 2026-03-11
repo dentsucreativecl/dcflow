@@ -8,13 +8,11 @@ export async function PATCH(
     const { userId } = await params;
     const supabase = createServerClient();
 
-    // Authenticate
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify SUPER_ADMIN
     const { data: caller } = await supabase
         .from('User')
         .select('role')
@@ -25,24 +23,17 @@ export async function PATCH(
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { role } = await request.json();
-    if (!['MEMBER', 'PM', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
-        return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
-    }
+    const { name, department, userAreas, gender } = await request.json();
 
-    // Only SUPER_ADMIN can assign SUPER_ADMIN role
-    if (role === 'SUPER_ADMIN' && caller.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Only SUPER_ADMIN can assign SUPER_ADMIN role' }, { status: 403 });
-    }
-
-    // Prevent changing own role
-    if (userId === authUser.id) {
-        return NextResponse.json({ error: 'Cannot change own role' }, { status: 400 });
-    }
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) updates.name = name;
+    if (department !== undefined) updates.department = department;
+    if (userAreas !== undefined) updates.userAreas = userAreas;
+    if (gender !== undefined) updates.gender = gender;
 
     const { error } = await supabase
         .from('User')
-        .update({ role })
+        .update(updates)
         .eq('id', userId);
 
     if (error) {

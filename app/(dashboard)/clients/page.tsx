@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Search, LayoutGrid, List, Loader2, Building2, Mail, FolderKanban } from "lucide-react";
+import Image from "next/image";
+import { Plus, Search, LayoutGrid, List, Loader2, Building2, Mail, FolderKanban, Edit3 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FilterDropdown } from "@/components/features/filter-dropdown";
 import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -18,6 +20,7 @@ interface ClientRow {
   id: string;
   name: string;
   color: string;
+  avatarUrl?: string | null;
   listsCount: number;
   membersCount: number;
   contactName: string;
@@ -35,7 +38,9 @@ function getInitials(name: string): string {
 
 export default function ClientsPage() {
   const { openModal } = useAppStore();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const router = useRouter();
+  const canEdit = isAdmin || isSuperAdmin;
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,7 +86,7 @@ export default function ClientsPage() {
         }
       }
 
-      const mapped: ClientRow[] = spaces.map((s) => {
+      const mapped: ClientRow[] = spaces.map((s: any) => {
         const spaceMembers = membersBySpace.get(s.id) || [];
         // Prefer GUEST users as contact, otherwise first member
         const contact = spaceMembers.find(m => m.userType === "GUEST") || spaceMembers[0];
@@ -89,6 +94,7 @@ export default function ClientsPage() {
           id: s.id,
           name: s.name,
           color: s.color || "#6B7280",
+          avatarUrl: s.avatarUrl || null,
           listsCount: listCountBySpace.get(s.id) || 0,
           membersCount: spaceMembers.length,
           contactName: contact?.name || "",
@@ -194,14 +200,29 @@ export default function ClientsPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div
-                    className="h-12 w-12 rounded-xl flex items-center justify-center text-white text-sm font-semibold"
-                    style={{ backgroundColor: client.color }}
+                    className="h-12 w-12 rounded-xl overflow-hidden flex items-center justify-center text-white text-sm font-semibold shrink-0"
+                    style={{ backgroundColor: client.avatarUrl ? undefined : client.color }}
                   >
-                    {getInitials(client.name)}
+                    {client.avatarUrl
+                      ? <Image src={client.avatarUrl} alt={client.name} width={48} height={48} className="object-cover w-full h-full" />
+                      : getInitials(client.name)}
                   </div>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {client.listsCount} proyecto{client.listsCount !== 1 ? "s" : ""}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => { e.stopPropagation(); openModal("edit-client", { clientId: client.id }); }}
+                      >
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    )}
+                    <Badge variant="secondary" className="text-[10px]">
+                      {client.listsCount} proyecto{client.listsCount !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
                 </div>
                 <h3 className="text-sm font-semibold text-foreground mb-1 truncate">
                   {client.name}
@@ -221,26 +242,29 @@ export default function ClientsPage() {
           </div>
         ) : (
           <div className="rounded-xl border bg-card overflow-hidden">
-            <div className="grid grid-cols-[2fr_1fr_1fr_100px] gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className={`grid ${canEdit ? "grid-cols-[2fr_1fr_1fr_100px_90px]" : "grid-cols-[2fr_1fr_1fr_100px]"} gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider`}>
               <span>Cliente</span>
               <span>Contacto</span>
               <span>Proyectos</span>
               <span>Equipo</span>
+              {canEdit && <span></span>}
             </div>
             <ScrollArea className="h-[calc(100vh-300px)]">
               <div className="divide-y divide-border/50">
                 {filteredClients.map((client) => (
                   <div
                     key={client.id}
-                    className="grid grid-cols-[2fr_1fr_1fr_100px] gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer"
+                    className={`grid ${canEdit ? "grid-cols-[2fr_1fr_1fr_100px_90px]" : "grid-cols-[2fr_1fr_1fr_100px]"} gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer`}
                     onClick={() => router.push(`/clients/${client.id}`)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-semibold shrink-0"
-                        style={{ backgroundColor: client.color }}
+                        className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center text-white text-xs font-semibold shrink-0"
+                        style={{ backgroundColor: client.avatarUrl ? undefined : client.color }}
                       >
-                        {getInitials(client.name)}
+                        {client.avatarUrl
+                          ? <Image src={client.avatarUrl} alt={client.name} width={32} height={32} className="object-cover w-full h-full" />
+                          : getInitials(client.name)}
                       </div>
                       <span className="text-sm font-medium text-foreground truncate">
                         {client.name}
@@ -255,6 +279,17 @@ export default function ClientsPage() {
                     <span className="text-sm text-muted-foreground">
                       {client.membersCount}
                     </span>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs w-fit"
+                        onClick={(e) => { e.stopPropagation(); openModal("edit-client", { clientId: client.id }); }}
+                      >
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
