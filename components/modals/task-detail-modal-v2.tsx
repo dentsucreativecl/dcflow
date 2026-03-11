@@ -1039,6 +1039,7 @@ export function TaskDetailModalV2() {
             });
         } catch (error) {
             log.error("Error adding comment:", error);
+            addToast({ title: "Error al enviar comentario", description: "No se pudo guardar el comentario. Intenta de nuevo.", variant: "destructive" });
         }
     };
 

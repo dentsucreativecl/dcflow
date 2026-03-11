@@ -564,18 +564,19 @@ CREATE POLICY "annotation_delete_space_member"
 -- -----------------------------------------------------------------------------
 -- Access if member of the task's space.
 
-CREATE POLICY "comment_select_space_member"
+CREATE POLICY "comment_select_authenticated"
     ON public."Comment"
     FOR SELECT
     USING (
-        public.is_space_member(public.task_space_id("taskId"))
+        auth.uid() IS NOT NULL
     );
 
-CREATE POLICY "comment_insert_space_member"
+CREATE POLICY "comment_insert_authenticated"
     ON public."Comment"
     FOR INSERT
     WITH CHECK (
-        public.is_space_member(public.task_space_id("taskId"))
+        auth.uid() IS NOT NULL
+        AND "userId" = auth.uid()::text
     );
 
 CREATE POLICY "comment_update_space_member"
