@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +145,7 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
     const [statuses, setStatuses] = useState<Status[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const dragStartStatusId = useRef<string | null>(null);
     const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
     const [lightboxImages, setLightboxImages] = useState<Array<{ url: string; name: string }>>([]);
     const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -297,7 +298,11 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
     };
 
     const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as string);
+        const id = event.active.id as string;
+        setActiveId(id);
+        const task = tasks.find(t => t.id === id);
+        dragStartStatusId.current = task?.status?.id ?? null;
+        console.log("[KANBAN] dragStart — taskId:", id, "statusId original:", dragStartStatusId.current);
     };
 
     const handleDragOver = useCallback((event: DragOverEvent) => {
@@ -342,11 +347,17 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
 
         if (!over || !active) {
             console.log("KANBAN: sin over o active, abortando");
+            dragStartStatusId.current = null;
             return;
         }
 
         const taskId = active.id as string;
         const overId = over.id as string;
+
+        // task ya tiene el status optimista (actualizado por handleDragOver)
+        // usar dragStartStatusId para comparar con el estado original
+        const originalStatusId = dragStartStatusId.current;
+        dragStartStatusId.current = null;
 
         const task = tasks.find(t => t.id === taskId);
         if (!task) {
@@ -354,21 +365,13 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
             return;
         }
 
-        // Determine target status
-        const isOverStatus = statuses.some(s => s.id === overId);
-        const isOverTask = tasks.some(t => t.id === overId);
+        // El status actual de la tarea es el destino (ya fue actualizado por handleDragOver)
+        const targetStatusId = task.status?.id;
 
-        let targetStatusId = task.status?.id;
-
-        if (isOverStatus) {
-            targetStatusId = overId;
-        } else if (isOverTask) {
-            const overTask = tasks.find(t => t.id === overId);
-            if (overTask) targetStatusId = overTask.status?.id;
-        }
+        console.log("[KANBAN] dragEnd — originalStatusId:", originalStatusId, "targetStatusId:", targetStatusId);
 
         // Persist status change to database
-        if (targetStatusId && targetStatusId !== task.status?.id) {
+        if (targetStatusId && targetStatusId !== originalStatusId) {
             // Block validation
             if (task.isBlocked) {
                 addToast({
@@ -391,10 +394,11 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
             }
         }
 
-        // Handle reorder within same column
-        if (isOverTask) {
+        // Handle reorder within same column (dropped on another task with same status)
+        const isOverTask = tasks.some(t => t.id === overId);
+        if (isOverTask && !targetStatusId || (isOverTask && targetStatusId === originalStatusId)) {
             const overTask = tasks.find(t => t.id === overId);
-            if (overTask && task.status?.id === overTask.status?.id) {
+            if (overTask && overId !== taskId) {
                 await handleReorder(taskId, overId);
             }
         }
