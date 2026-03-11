@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,6 +42,8 @@ interface ListRowProps {
     onUpdateTask?: (id: string, updates: Partial<ListTask>) => void;
     customFields?: CustomFieldColumn[];
     onSaveCustomField?: (fieldId: string, taskId: string, valueColumn: string, value: string | number | boolean | null) => void;
+    dragHandleListeners?: React.HTMLAttributes<HTMLElement>;
+    dragHandleAttributes?: React.HTMLAttributes<HTMLElement>;
 }
 
 const priorityConfig: Record<string, { color: string; label: string; icon: string }> = {
@@ -61,7 +63,9 @@ export function ListRow({
     statuses = [],
     onUpdateTask,
     customFields = [],
-    onSaveCustomField
+    onSaveCustomField,
+    dragHandleListeners,
+    dragHandleAttributes,
 }: ListRowProps) {
     const { openModal } = useAppStore();
     const [editingTitle, setEditingTitle] = useState(false);
@@ -120,7 +124,14 @@ export function ListRow({
 
             {/* Name */}
             <div className="flex items-center gap-2 min-w-0">
-                <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-grab shrink-0" />
+                <span
+                    className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                    onClick={(e) => e.stopPropagation()}
+                    {...dragHandleListeners}
+                    {...dragHandleAttributes}
+                >
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </span>
                 {task.isBlocked && (
                     <span title={task.blockedByTitles?.join(", ") || "Bloqueada"}>
                         <Lock className="h-3.5 w-3.5 text-destructive shrink-0" />

@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import React from "react";
 import { ListRow } from "./list-row";
 import { ListTask, StatusOption, CustomFieldColumn } from "./types";
 
@@ -43,16 +43,7 @@ export function SortableRow({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="relative group">
-            <div className="absolute left-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity -ml-6 z-10">
-                <button
-                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
-                    {...attributes}
-                    {...listeners}
-                >
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                </button>
-            </div>
+        <div ref={setNodeRef} style={style}>
             <ListRow
                 task={task}
                 isSelected={isSelected}
@@ -62,6 +53,8 @@ export function SortableRow({
                 onUpdateTask={onUpdateTask}
                 customFields={customFields}
                 onSaveCustomField={onSaveCustomField}
+                dragHandleListeners={listeners as React.HTMLAttributes<HTMLElement>}
+                dragHandleAttributes={attributes as React.HTMLAttributes<HTMLElement>}
             />
         </div>
     );

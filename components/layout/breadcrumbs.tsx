@@ -76,6 +76,9 @@ export function Breadcrumbs() {
 
   if (!pathname) return null;
 
+  // Pages with their own breadcrumb — hide global one
+  if (pathname.startsWith("/lists/")) return null;
+
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 0) return null;
 
