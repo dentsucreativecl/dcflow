@@ -344,7 +344,7 @@ export function TaskDetailModalV2() {
                 // Fetch comments
                 const { data: commentsData } = await supabase
                     .from("Comment")
-                    .select("id, content, createdAt, User!userId(id, name, avatarUrl)")
+                    .select("id, content, attachments, createdAt, User!userId(id, name, avatarUrl)")
                     .eq("taskId", taskId)
                     .order("createdAt", { ascending: false });
 
@@ -355,7 +355,7 @@ export function TaskDetailModalV2() {
                         return {
                             id: c.id,
                             content: c.content,
-                            attachments: null,
+                            attachments: (c as any).attachments as CommentAttachment[] | null,
                             createdAt: c.createdAt,
                             user: { id: u?.id ?? "", name: u?.name ?? "Usuario", avatarUrl: u?.avatarUrl ?? null },
                         };
@@ -1017,10 +1017,11 @@ export function TaskDetailModalV2() {
                     taskId: task.id,
                     userId: user.id,
                     content,
+                    attachments: attachments ?? null,
                     createdAt: now,
                     updatedAt: now,
                 })
-                .select("id, content, createdAt")
+                .select("id, content, attachments, createdAt")
                 .single();
 
             if (error) throw error;
@@ -1028,7 +1029,7 @@ export function TaskDetailModalV2() {
             setComments([
                 {
                     ...data,
-                    attachments: null,
+                    attachments: data.attachments as CommentAttachment[] | null,
                     user: { id: user.id, name: user.name, avatarUrl: user.avatar || null },
                 },
                 ...comments,
