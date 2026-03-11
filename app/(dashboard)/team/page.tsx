@@ -72,7 +72,7 @@ export default function TeamPage() {
           email: user.email,
           avatar: user.name
             .split(" ")
-            .map((n) => n[0])
+            .map((n: string) => n[0])
             .join(""),
           department: (user as Record<string, unknown>).department as string || teamName,
           userAreas: ((user as Record<string, unknown>).userAreas as string[]) || [],
