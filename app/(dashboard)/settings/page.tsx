@@ -40,6 +40,7 @@ export default function ProfilePage() {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log("FILE INPUT CHANGE", file?.name, "user:", user?.id);
     if (!file || !user) return;
     setUploadingAvatar(true);
     try {
@@ -55,7 +56,8 @@ export default function ProfilePage() {
       setUser({ ...user, avatarUrl });
       addToast({ title: 'Foto actualizada', type: 'success' });
     } catch (err) {
-      addToast({ title: 'Error al subir foto', type: 'error' });
+      console.error('Avatar upload error:', err);
+      addToast({ title: 'Error al subir foto', description: err instanceof Error ? err.message : String(err), type: 'error' });
     } finally {
       setUploadingAvatar(false);
       e.target.value = '';
@@ -115,7 +117,7 @@ export default function ProfilePage() {
               <div>
                 <p className="text-sm font-medium text-foreground">{user.name}</p>
                 <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                <Button variant="outline" size="sm" className="mt-1 gap-1.5" onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}>
+                <Button variant="outline" size="sm" className="mt-1 gap-1.5" onClick={() => { console.log("AVATAR BTN CLICK, ref:", avatarInputRef.current); avatarInputRef.current?.click(); }} disabled={uploadingAvatar}>
                   {uploadingAvatar ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                   Cambiar foto
                 </Button>

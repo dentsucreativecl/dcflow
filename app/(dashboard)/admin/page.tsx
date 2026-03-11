@@ -46,6 +46,7 @@ import {
     FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getGendered } from "@/lib/utils/gender";
 
 interface UserRow {
     id: string;
@@ -55,6 +56,7 @@ interface UserRow {
     isActive: boolean;
     department: string | null;
     userAreas: string[];
+    gender?: string | null;
 }
 
 interface ChannelRow {
@@ -159,7 +161,7 @@ export default function AdminPage() {
                 .select("id, type, field, oldValue, newValue, createdAt, user:User(name), task:Task(title)")
                 .order("createdAt", { ascending: false })
                 .limit(5),
-            supabase.from("User").select("id, name, email, role, isActive, department, userAreas").order("name"),
+            supabase.from("User").select("id, name, email, role, isActive, department, userAreas, gender").order("name"),
             supabase.from("Channel").select("id, name, slug, isArchived").order("name"),
             fetch("/api/spaces").then(r => r.json()),
         ]);
@@ -306,6 +308,25 @@ export default function AdminPage() {
             addToast({ title: 'Error al cambiar el rol', type: 'error' });
         } finally {
             setUpdatingUser(null);
+        }
+    };
+
+    const handleGenderChange = async (userId: string, gender: string) => {
+        console.log("GENDER CHANGE", userId, gender);
+        // Optimistic update immediately so the UI reflects the change
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, gender } : u)));
+        try {
+            const res = await fetch(`/api/admin/users/${userId}/gender`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ gender }),
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+        } catch (err) {
+            console.error("Error changing gender:", err);
+            addToast({ title: 'Error al cambiar género', type: 'error' });
+            // Revert on failure by re-fetching
+            fetchData();
         }
     };
 
@@ -778,8 +799,24 @@ export default function AdminPage() {
                                                     {u.role}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">
-                                                {u.department || "—"}
+                                            <TableCell>
+                                                <div className="space-y-1">
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {u.department ? getGendered(u.department, u.gender || 'MASCULINE') : "—"}
+                                                    </p>
+                                                    {u.department && (
+                                                        <Select value={u.gender || 'MASCULINE'} onValueChange={(val) => handleGenderChange(u.id, val)}>
+                                                            <SelectTrigger className="h-6 w-[90px] text-[10px] px-2">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="MASCULINE">Masc.</SelectItem>
+                                                                <SelectItem value="FEMININE">Fem.</SelectItem>
+                                                                <SelectItem value="NEUTRAL">Neutro</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 {u.userAreas && u.userAreas.length > 0 ? (
