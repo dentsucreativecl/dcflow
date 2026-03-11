@@ -73,13 +73,28 @@ export function ListView({
 
         if (!over || active.id === over.id) return;
 
-        const oldIndex = tasks.findIndex((task) => task.id === active.id);
-        const newIndex = tasks.findIndex((task) => task.id === over.id);
+        const activeTask = tasks.find(t => t.id === active.id);
+        const overTask = tasks.find(t => t.id === over.id);
 
+        if (!activeTask) return;
+
+        // Cross-status drag: task dropped onto a task in a different status group
+        if (overTask && activeTask.status?.id !== overTask.status?.id && overTask.status) {
+            const newTasks = tasks.map(t =>
+                t.id === activeTask.id ? { ...t, status: overTask.status } : t
+            );
+            setTasks(newTasks);
+            if (onUpdateTask) {
+                onUpdateTask(activeTask.id, { status: overTask.status } as Partial<ListTask>);
+            }
+            return;
+        }
+
+        // Same status: reorder
+        const oldIndex = tasks.findIndex(t => t.id === active.id);
+        const newIndex = tasks.findIndex(t => t.id === over.id);
         const newTasks = arrayMove(tasks, oldIndex, newIndex);
         setTasks(newTasks);
-
-        // Call parent handler if provided
         if (onReorderTasks) {
             onReorderTasks(newTasks);
         }
