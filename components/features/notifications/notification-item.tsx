@@ -65,7 +65,7 @@ export function NotificationItem({
             const channelSlug = notification.data?.channelSlug as string | undefined;
             // Fallback: parse "#canal-name" from title like "X te mencionó en #canal-name"
             const fallbackSlug = !channelSlug
-                ? notification.title.match(/#([\w-]+)/)?.[1]
+                ? notification.title.match(/#([\w-]+)/)?.[1]?.toLowerCase()
                 : undefined;
             const slug = channelSlug ?? fallbackSlug;
             if (slug) {
