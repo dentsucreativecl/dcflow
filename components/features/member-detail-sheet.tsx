@@ -352,7 +352,7 @@ export function MemberDetailSheet({ memberId, onClose }: MemberDetailSheetProps)
                           style={{ backgroundColor: space.color || "#6366f1" }}
                         />
                         <Link
-                          href={`/spaces/${space.id}`}
+                          href={`/clients/${space.id}`}
                           className="font-medium text-sm hover:underline"
                         >
                           {space.name}

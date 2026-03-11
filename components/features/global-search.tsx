@@ -218,7 +218,7 @@ export function GlobalSearch({ triggerless = false }: { triggerless?: boolean })
         openModal("task-detail-v2", { taskId: result.id });
         break;
       case "space":
-        router.push(`/spaces/${result.id}`);
+        router.push(`/clients/${result.id}`);
         break;
       case "member":
         router.push("/team");
