@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { MoreHorizontal, Mail, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -34,9 +33,10 @@ function getAvatarColor(name: string) {
 
 interface TeamCardProps {
   member: TeamMember;
+  onViewMember?: (id: string) => void;
 }
 
-export function TeamCard({ member }: TeamCardProps) {
+export function TeamCard({ member, onViewMember }: TeamCardProps) {
   const utilization = Math.round((member.hoursThisWeek / member.capacity) * 100);
 
   return (
@@ -49,9 +49,13 @@ export function TeamCard({ member }: TeamCardProps) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <Link href={`/team/${member.id}`} className="font-semibold text-foreground hover:underline">
+            <button
+              onClick={() => onViewMember?.(member.id)}
+              className="font-semibold text-foreground hover:underline text-left"
+              type="button"
+            >
               {member.name}
-            </Link>
+            </button>
             <p className="text-sm text-muted-foreground">{member.role}</p>
           </div>
         </div>
@@ -62,15 +66,20 @@ export function TeamCard({ member }: TeamCardProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onViewMember?.(member.id)}>Ver Perfil</DropdownMenuItem>
             <DropdownMenuItem>Asignar Tarea</DropdownMenuItem>
             <DropdownMenuItem>Ver Carga</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <div className="mt-3">
-        <Badge variant="outline" className="text-xs">{member.department}</Badge>
+      <div className="mt-3 flex flex-wrap gap-1">
+        {member.userAreas && member.userAreas.length > 0
+          ? member.userAreas.map((area) => (
+            <Badge key={area} variant="outline" className="text-xs">{area}</Badge>
+          ))
+          : <Badge variant="outline" className="text-xs">{member.department}</Badge>
+        }
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">

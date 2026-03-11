@@ -36,6 +36,7 @@ export interface TeamMember {
   email: string;
   avatar: string;
   department: string;
+  userAreas?: string[];
   hourlyRate: number;
   hoursThisWeek: number;
   capacity: number;

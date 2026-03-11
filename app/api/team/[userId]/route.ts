@@ -46,7 +46,7 @@ export async function PATCH(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         const { role } = body as { role: string };
-        const validRoles = ['ADMIN', 'MEMBER'];
+        const validRoles = ['ADMIN', 'PM', 'MEMBER'];
         if (!role || !validRoles.includes(role)) {
             return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
         }

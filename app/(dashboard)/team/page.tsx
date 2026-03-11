@@ -11,16 +11,21 @@ import { FilterDropdown } from "@/components/features/filter-dropdown";
 import { useAppStore } from "@/lib/store";
 import { TeamTable } from "@/components/features/team-table";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/auth-context";
+import { MemberDetailSheet } from "@/components/features/member-detail-sheet";
 import type { TeamMember } from "@/lib/data";
 
 export default function TeamPage() {
   const { openModal } = useAppStore();
+  const { isSuperAdmin, isAdmin, isPM } = useAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const canViewMembers = isSuperAdmin || isAdmin || isPM;
 
   useEffect(() => {
     async function fetchTeam() {
@@ -37,7 +42,7 @@ export default function TeamPage() {
         await Promise.all([
           supabase
             .from("User")
-            .select("id, name, email, role, weeklyCapacity, jobTitle, department")
+            .select("id, name, email, role, weeklyCapacity, jobTitle, department, userAreas")
             .eq("userType", "MEMBER")
             .eq("isActive", true)
             .order("name"),
@@ -70,6 +75,7 @@ export default function TeamPage() {
             .map((n) => n[0])
             .join(""),
           department: (user as Record<string, unknown>).department as string || teamName,
+          userAreas: ((user as Record<string, unknown>).userAreas as string[]) || [],
           hourlyRate: 0,
           hoursThisWeek: Math.round(weeklyHours * 10) / 10,
           capacity: user.weeklyCapacity || 40,
@@ -202,11 +208,11 @@ export default function TeamPage() {
       {viewMode === "grid" ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredMembers.map((member) => (
-            <TeamCard key={member.id} member={member} />
+            <TeamCard key={member.id} member={member} onViewMember={canViewMembers ? setSelectedMemberId : undefined} />
           ))}
         </div>
       ) : (
-        <TeamTable members={filteredMembers} />
+        <TeamTable members={filteredMembers} onViewMember={canViewMembers ? setSelectedMemberId : undefined} canViewMembers={canViewMembers} />
       )}
 
       {/* Empty State */}
@@ -227,6 +233,9 @@ export default function TeamPage() {
           )}
         </div>
       )}
+
+      {/* Member Detail Sheet */}
+      <MemberDetailSheet memberId={selectedMemberId} onClose={() => setSelectedMemberId(null)} />
     </div>
   );
 }

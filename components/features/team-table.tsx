@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,9 +16,11 @@ import { Mail } from "lucide-react";
 
 interface TeamTableProps {
     members: TeamMember[];
+    onViewMember?: (id: string) => void;
+    canViewMembers?: boolean;
 }
 
-export function TeamTable({ members }: TeamTableProps) {
+export function TeamTable({ members, onViewMember, canViewMembers }: TeamTableProps) {
     const getUtilization = (member: TeamMember) => {
         return Math.round((member.hoursThisWeek / member.capacity) * 100);
     };
@@ -54,21 +55,29 @@ export function TeamTable({ members }: TeamTableProps) {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <Link
-                                                href={`/team/${member.id}`}
-                                                className="font-medium text-foreground hover:underline"
+                                            <button
+                                                onClick={() => onViewMember?.(member.id)}
+                                                className="font-medium text-foreground hover:underline text-left"
+                                                type="button"
                                             >
                                                 {member.name}
-                                            </Link>
+                                            </button>
                                             <p className="text-xs text-muted-foreground">{member.email}</p>
                                         </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <span className="text-sm">{member.role}</span>
+                                    <span className="text-sm">{member.department}</span>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline">{member.department}</Badge>
+                                    <div className="flex flex-wrap gap-1">
+                                        {member.userAreas && member.userAreas.length > 0
+                                            ? member.userAreas.map((area) => (
+                                                <Badge key={area} variant="outline">{area}</Badge>
+                                            ))
+                                            : <Badge variant="outline">{member.department}</Badge>
+                                        }
+                                    </div>
                                 </TableCell>
                                 <TableCell>
                                     <span className="font-medium">{member.hoursThisWeek}h</span>
@@ -97,9 +106,11 @@ export function TeamTable({ members }: TeamTableProps) {
                                                 <Mail className="h-4 w-4" />
                                             </a>
                                         </Button>
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/team/${member.id}`}>Ver</Link>
-                                        </Button>
+                                        {canViewMembers && (
+                                            <Button variant="outline" size="sm" onClick={() => onViewMember?.(member.id)}>
+                                                Ver
+                                            </Button>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
