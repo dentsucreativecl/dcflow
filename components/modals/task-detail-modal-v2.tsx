@@ -992,7 +992,7 @@ export function TaskDetailModalV2() {
                     .upload(filePath, commentAttachment, { contentType: commentAttachment.type });
 
                 if (uploadError) {
-                    log.error("Error uploading comment attachment:", uploadError.message);
+                    throw new Error(`Error al subir archivo: ${uploadError.message}`);
                 } else {
                     const { data: urlData } = supabase.storage
                         .from("attachments")
@@ -1046,7 +1046,8 @@ export function TaskDetailModalV2() {
             });
         } catch (error) {
             log.error("Error adding comment:", error);
-            addToast({ title: "Error al enviar comentario", description: "No se pudo guardar el comentario. Intenta de nuevo.", variant: "destructive" });
+            const msg = error instanceof Error ? error.message : "No se pudo guardar el comentario. Intenta de nuevo.";
+            addToast({ title: "Error al enviar comentario", description: msg, variant: "destructive" });
         }
     };
 
