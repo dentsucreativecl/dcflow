@@ -196,8 +196,9 @@ export default function ClientDetailPage() {
       await supabase.from('Space').update({ avatarUrl }).eq('id', space.id);
       setSpace({ ...space, avatarUrl });
       addToast({ title: 'Logo actualizado', type: 'success' });
-    } catch {
-      addToast({ title: 'Error al subir logo', type: 'error' });
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      addToast({ title: 'Error al subir logo', description: err instanceof Error ? err.message : String(err), type: 'error' });
     } finally {
       setUploadingLogo(false);
       e.target.value = '';

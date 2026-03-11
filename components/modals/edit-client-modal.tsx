@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,7 @@ import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2 } from "lucide-react";
+import { Camera, Loader2, Trash2 } from "lucide-react";
 
 const PRESET_COLORS = [
   "#3498DB", "#2980B9", "#E74C3C", "#C0392B",
@@ -65,12 +66,15 @@ export function EditClientModal() {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [services, setServices] = useState<string[]>([]);
   const [existingFolders, setExistingFolders] = useState<string[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [allUsers, setAllUsers] = useState<AvailableUser[]>([]);
   const [addUserId, setAddUserId] = useState("");
   const [updatingMember, setUpdatingMember] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = useCallback(() => {
     closeModal();
@@ -91,7 +95,7 @@ export function EditClientModal() {
       const supabase = createClient();
 
       const [spaceRes, foldersRes, membersRes, usersRes] = await Promise.all([
-        supabase.from("Space").select("name, color").eq("id", spaceId).single(),
+        supabase.from("Space").select("name, color, avatarUrl").eq("id", spaceId).single(),
         supabase.from("Folder").select("id, name").eq("spaceId", spaceId),
         supabase
           .from("SpaceMember")
@@ -108,6 +112,7 @@ export function EditClientModal() {
       if (spaceRes.data) {
         setName(spaceRes.data.name);
         setColor(spaceRes.data.color || PRESET_COLORS[0]);
+        setAvatarUrl((spaceRes.data as any).avatarUrl || null);
       }
 
       if (foldersRes.data) {
@@ -139,6 +144,32 @@ export function EditClientModal() {
     };
     fetchSpace();
   }, [spaceId]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !spaceId) return;
+    setUploadingLogo(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `logos/${spaceId}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('attachments').upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+      const url = urlData.publicUrl;
+      const { error: dbErr } = await supabase.from('Space').update({ avatarUrl: url }).eq('id', spaceId);
+      if (dbErr) throw dbErr;
+      setAvatarUrl(url);
+      addToast({ title: 'Logo actualizado', type: 'success' });
+      window.dispatchEvent(new CustomEvent("dcflow:clients-refresh"));
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      addToast({ title: 'Error al subir logo', description: err instanceof Error ? err.message : String(err), type: 'error' });
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
 
   const handleSave = async () => {
     if (!spaceId) return;
@@ -266,6 +297,26 @@ export function EditClientModal() {
           </div>
         ) : (
           <div className="space-y-5">
+            {/* Logo */}
+            <div className="space-y-2">
+              <Label>Logo del Cliente</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative h-16 w-16 rounded-lg overflow-hidden border bg-muted flex items-center justify-center shrink-0" style={{ backgroundColor: avatarUrl ? undefined : color }}>
+                  {avatarUrl
+                    ? <Image src={avatarUrl} alt={name} width={64} height={64} className="object-cover w-full h-full" />
+                    : <span className="text-white text-xl font-semibold">{name.slice(0, 2).toUpperCase()}</span>}
+                </div>
+                <div>
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
+                    {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                    Subir logo
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG o SVG recomendado</p>
+                </div>
+              </div>
+            </div>
+
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nombre de la Empresa</Label>
