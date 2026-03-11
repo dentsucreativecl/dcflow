@@ -58,7 +58,7 @@ export default function TeamPage() {
       // Map to TeamMember interface
       const mapped: TeamMember[] = users.map((user) => {
         const membership = memberships?.find((m) => m.userId === user.id);
-        const team = membership?.Team as { id: string; name: string } | null;
+        const team = (Array.isArray(membership?.Team) ? membership.Team[0] : membership?.Team) as { id: string; name: string } | null;
         const teamName = team?.name || "General";
 
         const weeklyHours = (timeEntries || [])
