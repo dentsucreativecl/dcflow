@@ -1098,7 +1098,7 @@ export function TaskDetailModalV2() {
         } catch (error) {
             log.error("Error adding comment:", error);
             const msg = error instanceof Error ? error.message : "No se pudo guardar el comentario. Intenta de nuevo.";
-            addToast({ title: "Error al enviar comentario", description: msg, variant: "destructive" });
+            addToast({ title: "Error al enviar comentario", description: msg, type: "error" });
         }
     };
 

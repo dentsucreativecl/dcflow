@@ -17,7 +17,7 @@ import {
     exportTasksToCSV,
     exportTeamToCSV,
 } from "@/lib/export";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/toast";
 
 interface ExportMenuProps {
     type: "projects" | "tasks" | "team";
@@ -26,7 +26,7 @@ interface ExportMenuProps {
 export function ExportMenu({ type }: ExportMenuProps) {
     const [isExporting, setIsExporting] = useState(false);
     const { projects, tasks, teamMembers } = useAppStore();
-    const { toast } = useToast();
+    const { addToast } = useToast();
 
     const handleExport = async (format: "pdf" | "csv" | "excel") => {
         setIsExporting(true);
@@ -53,15 +53,16 @@ export function ExportMenu({ type }: ExportMenuProps) {
                     break;
             }
 
-            toast({
+            addToast({
                 title: "Export successful",
                 description: `${type} exported as ${format.toUpperCase()}`,
+                type: "success",
             });
         } catch (error) {
-            toast({
+            addToast({
                 title: "Export failed",
                 description: "There was an error exporting the data",
-                variant: "destructive",
+                type: "error",
             });
         } finally {
             setIsExporting(false);

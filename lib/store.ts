@@ -29,7 +29,7 @@ export type ModalType =
   | "bulk-assign"
   | "new-channel"
   | "edit-client"
-    | "new-document"
+  | "new-document"
   | null;
 
 interface ModalData {

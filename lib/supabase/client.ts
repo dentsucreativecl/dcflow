@@ -20,7 +20,8 @@ export const createClient = (): SupabaseClient => {
             auth: {
                 // Replace navigator.locks with a no-op to avoid lock timeout errors
                 // Safe for single-tab SPA usage
-                lock: async (_name: string, _timeout: number, fn: <T>() => Promise<T>) => fn(),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                lock: async (_name: string, _timeout: number, fn: () => Promise<any>) => fn(),
             },
         }
     )
