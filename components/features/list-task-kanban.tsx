@@ -445,12 +445,31 @@ export function ListTaskKanban({ listId, tasks, onTaskClick, onTaskUpdate, onAut
     const updateTaskStatus = async (taskId: string, statusId: string) => {
         const supabase = createClient();
 
-        const { error } = await supabase
+        // DEBUG
+        console.log("[KANBAN STATUS] taskId:", taskId);
+        console.log("[KANBAN STATUS] nuevo statusId:", statusId);
+        console.log("[KANBAN STATUS] statuses disponibles:", statuses);
+
+        const result = await supabase
             .from('Task')
             .update({ statusId })
-            .eq('id', taskId);
+            .eq('id', taskId)
+            .select("id, statusId");
 
-        if (error) throw error;
+        console.log("[KANBAN STATUS] resultado UPDATE completo:", JSON.stringify(result, null, 2));
+
+        if (result.error) throw result.error;
+        if (!result.data || result.data.length === 0) {
+            console.warn("[KANBAN STATUS] UPDATE afectó 0 filas — posible bloqueo RLS");
+        }
+
+        // Verificar valor en DB tras UPDATE
+        const { data: dbCheck, error: dbCheckError } = await supabase
+            .from('Task')
+            .select("id, statusId")
+            .eq('id', taskId)
+            .single();
+        console.log("[KANBAN STATUS] SELECT post-UPDATE:", JSON.stringify({ dbCheck, dbCheckError }, null, 2));
     };
 
     const updateTaskOrder = async (taskId: string, order: number) => {
