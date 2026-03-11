@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useAppStore } from "@/lib/store";
+import { useToast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -99,6 +100,7 @@ export default function AdminPage() {
     const { openModal } = useAppStore();
     const router = useRouter();
     const canAccess = isSuperAdmin || isAdmin;
+    const { addToast } = useToast();
 
     const [loading, setLoading] = useState(true);
     const [projectCount, setProjectCount] = useState(0);
@@ -298,8 +300,10 @@ export default function AdminPage() {
             });
             if (!res.ok) throw new Error((await res.json()).error);
             setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+            addToast({ title: 'Rol actualizado correctamente', type: 'success' });
         } catch (err) {
             console.error("Error changing role:", err);
+            addToast({ title: 'Error al cambiar el rol', type: 'error' });
         } finally {
             setUpdatingUser(null);
         }
@@ -801,25 +805,20 @@ export default function AdminPage() {
                                                 <div className="flex items-center justify-end gap-1">
                                                     {canModify && (
                                                         <>
-                                                            {roleOptions
-                                                                .filter((r) => r !== u.role)
-                                                                .slice(0, 1)
-                                                                .map((nextRole) => (
-                                                                    <Button
-                                                                        key={nextRole}
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="h-7 text-xs"
-                                                                        disabled={updatingUser === u.id}
-                                                                        onClick={() => handleRoleChange(u.id, nextRole)}
-                                                                    >
-                                                                        {updatingUser === u.id ? (
-                                                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                                                        ) : (
-                                                                            `→ ${nextRole}`
-                                                                        )}
-                                                                    </Button>
-                                                                ))}
+                                                            <Select
+                                                                value={u.role}
+                                                                onValueChange={(val) => handleRoleChange(u.id, val)}
+                                                                disabled={updatingUser === u.id}
+                                                            >
+                                                                <SelectTrigger className="h-7 w-[100px] text-xs">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="MEMBER">Miembro</SelectItem>
+                                                                    <SelectItem value="PM">PM</SelectItem>
+                                                                    <SelectItem value="ADMIN">Admin</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
                                                             {u.isActive ? (
                                                                 <Button
                                                                     variant="ghost"
