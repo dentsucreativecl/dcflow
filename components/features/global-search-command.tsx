@@ -293,7 +293,7 @@ export function GlobalSearchCommand() {
                                 <CommandItem
                                     key={space.id}
                                     onSelect={() =>
-                                        handleSelect(() => router.push(`/spaces/${space.id}`))
+                                        handleSelect(() => router.push(`/clients/${space.id}`))
                                     }
                                     className="flex items-center gap-3 py-3"
                                 >
