@@ -51,12 +51,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([])
   }
 
-  // Fetch spaces
-  const { data: spaces } = await admin
+  // Fetch spaces — sidebar (include=all) excludes archived; admin view includes all
+  const spacesQuery = admin
     .from('Space')
     .select('id, name, color, icon, isArchived, avatarUrl')
     .in('id', spaceIds)
     .order('name')
+
+  if (includeFolders) spacesQuery.eq('isArchived', false)
+
+  const { data: spaces } = await spacesQuery
 
   if (!includeFolders) {
     return NextResponse.json(spaces || [])

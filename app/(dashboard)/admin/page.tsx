@@ -41,6 +41,7 @@ import {
     UserX,
     Archive,
     ArchiveRestore,
+    Trash2,
     Plus,
     Edit3,
     X,
@@ -426,6 +427,24 @@ export default function AdminPage() {
         }
     };
 
+    const handleDeleteSpace = async (spaceId: string, spaceName: string) => {
+        if (!window.confirm(`¿Eliminar permanentemente "${spaceName}"? Esta acción eliminará todos sus folders, proyectos y tareas.`)) return;
+        setUpdatingSpace(spaceId);
+        try {
+            const res = await fetch(`/api/admin/spaces/${spaceId}`, { method: "DELETE" });
+            if (!res.ok) {
+                const { error } = await res.json().catch(() => ({ error: "Error desconocido" }));
+                throw new Error(error);
+            }
+            setSpaces((prev) => prev.filter((s) => s.id !== spaceId));
+            window.dispatchEvent(new CustomEvent("dcflow:clients-refresh"));
+        } catch (err: any) {
+            console.error("Error deleting space:", err);
+        } finally {
+            setUpdatingSpace(null);
+        }
+    };
+
     const openDeactivateModal = async (targetUser: UserRow) => {
         setDeactivateUser(targetUser);
         setDeactivateTransferTo("");
@@ -712,6 +731,17 @@ export default function AdminPage() {
                                                         <><Archive className="h-3 w-3 mr-1" />Archivar</>
                                                     )}
                                                 </Button>
+                                                {s.isArchived && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        disabled={updatingSpace === s.id}
+                                                        onClick={() => handleDeleteSpace(s.id, s.name)}
+                                                    >
+                                                        <Trash2 className="h-3 w-3 mr-1" />Eliminar
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
