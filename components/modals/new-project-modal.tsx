@@ -94,7 +94,7 @@ export function NewProjectModal() {
         body: JSON.stringify({
           name: name.trim(),
           spaceId,
-          folderId: folderId || null,
+          folderId: folderId && folderId !== "none" ? folderId : null,
           description: description.trim() || null,
           startDate: startDate ? new Date(startDate).toISOString() : null,
           endDate: endDate ? new Date(endDate).toISOString() : null,
@@ -193,7 +193,7 @@ export function NewProjectModal() {
                   <SelectValue placeholder={spaceFolders.length === 0 ? "Sin folders disponibles" : "Sin folder"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin folder</SelectItem>
+                  <SelectItem value="none">Sin folder</SelectItem>
                   {spaceFolders.map((f) => (
                     <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                   ))}
