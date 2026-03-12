@@ -90,7 +90,9 @@ export default function TeamPage() {
       }
     }
 
-    fetchTeam();
+    const safetyTimer = setTimeout(() => setLoading(false), 8000);
+    fetchTeam().finally(() => clearTimeout(safetyTimer));
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   // Get unique departments and statuses

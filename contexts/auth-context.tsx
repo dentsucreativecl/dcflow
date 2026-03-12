@@ -153,16 +153,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Listen for auth state changes (login, logout, token refresh)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (session?.user) {
-                    const profile = await fetchProfile(session.user.id);
+                if (event === 'SIGNED_OUT' || !session?.user) {
+                    setUser(null);
+                    return;
+                }
+                const profile = await fetchProfile(session.user.id);
+                // Only update user if profile fetch succeeded.
+                // On TOKEN_REFRESHED, a transient fetchProfile error (network hiccup)
+                // must NOT set user=null — that causes every page's useEffect([user])
+                // to fire with null and get stuck with loading=true permanently.
+                if (profile !== null) {
                     setUser(profile);
-                } else {
-                    setUser(null);
                 }
-
-                if (event === 'SIGNED_OUT') {
-                    setUser(null);
-                }
+                // If profile is null (fetch error), keep the existing user state so
+                // pages stay functional. The user will be signed out on next hard refresh.
             }
         );
 

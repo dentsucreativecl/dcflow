@@ -111,7 +111,9 @@ export default function ClientsPage() {
   }, []);
 
   useEffect(() => {
-    fetchClients();
+    const safetyTimer = setTimeout(() => setLoading(false), 8000);
+    fetchClients().finally(() => clearTimeout(safetyTimer));
+    return () => clearTimeout(safetyTimer);
   }, [fetchClients]);
 
   // Refresh when a new client is created from the modal

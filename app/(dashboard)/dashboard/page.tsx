@@ -26,7 +26,7 @@ type ViewMode = "grouped" | "list";
 
 export default function DashboardPage() {
   const { openModal } = useAppStore();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<TaskRowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [listCount, setListCount] = useState(0);
@@ -39,7 +39,17 @@ export default function DashboardPage() {
   const [projectFilter, setProjectFilter] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    // Wait for auth to resolve — don't start fetch while authLoading
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+
+    let cancelled = false;
+
+    // 8-second safety net — stop skeleton even if Supabase hangs at TCP level
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     const currentUserId = user.id;
 
     async function fetchData() {
@@ -60,7 +70,7 @@ export default function DashboardPage() {
           fetch("/api/spaces?include=all").then(r => r.json()),
         ]);
 
-        if (assignmentsRes.data) {
+        if (!cancelled && assignmentsRes.data) {
           const mapped = assignmentsRes.data
             .map((row: Record<string, unknown>) => {
               const rawTask = row.task as Record<string, unknown> | Record<string, unknown>[] | null;
@@ -89,7 +99,7 @@ export default function DashboardPage() {
         }
 
         // Extract counts from the API response (bypasses RLS)
-        if (spacesRes && spacesRes.spaces) {
+        if (!cancelled && spacesRes && spacesRes.spaces) {
           setListCount(spacesRes.lists?.length || 0);
           setTeamCount(spacesRes.teamCount || 0);
           setAllSpaces(spacesRes.spaces.map((s: { id: string; name: string }) => ({ value: s.name, label: s.name, count: 0 })));
@@ -97,12 +107,14 @@ export default function DashboardPage() {
       } catch (err) {
         console.error("Dashboard fetchData error:", err);
       } finally {
-        setLoading(false);
+        clearTimeout(timeoutId);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchData();
-  }, [user]);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
+  }, [user, authLoading]);
 
   // Derive unique clients: use all spaces as base, annotate with user task count
   const clients = useMemo(() => {
