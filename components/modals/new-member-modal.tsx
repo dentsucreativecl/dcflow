@@ -30,7 +30,6 @@ const formSchema = z.object({
   email: z.string().email("Dirección de correo inválida"),
   role: z.string().min(1, "Selecciona un cargo"),
   department: z.string().min(1, "Selecciona un área"),
-  hourlyRate: z.number().min(0, "La tarifa debe ser mayor a 0"),
   capacity: z.number().min(1).max(60, "La capacidad debe estar entre 1 y 60 horas"),
 });
 
@@ -80,7 +79,6 @@ export function NewMemberModal() {
       email: "",
       role: "",
       department: "",
-      hourlyRate: 75,
       capacity: 40,
     },
   });
@@ -212,35 +210,19 @@ export function NewMemberModal() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hourlyRate">Tarifa por Hora ($) *</Label>
-              <Input
-                id="hourlyRate"
-                type="number"
-                min={0}
-                {...register("hourlyRate", { valueAsNumber: true })}
-                className={errors.hourlyRate ? "border-destructive" : ""}
-              />
-              {errors.hourlyRate && (
-                <p className="text-xs text-destructive">{errors.hourlyRate.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Capacidad Semanal (hrs) *</Label>
-              <Input
-                id="capacity"
-                type="number"
-                min={1}
-                max={60}
-                {...register("capacity", { valueAsNumber: true })}
-                className={errors.capacity ? "border-destructive" : ""}
-              />
-              {errors.capacity && (
-                <p className="text-xs text-destructive">{errors.capacity.message}</p>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="capacity">Capacidad Semanal (hrs) *</Label>
+            <Input
+              id="capacity"
+              type="number"
+              min={1}
+              max={60}
+              {...register("capacity", { valueAsNumber: true })}
+              className={errors.capacity ? "border-destructive" : ""}
+            />
+            {errors.capacity && (
+              <p className="text-xs text-destructive">{errors.capacity.message}</p>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
