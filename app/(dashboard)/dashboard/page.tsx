@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  Folder, CheckSquare, Users, Clock, Loader2,
+  Folder, CheckSquare, Users, Clock,
   ChevronDown, ChevronRight, List as ListIcon, LayoutGrid,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -17,6 +17,7 @@ import {
   type DateGroup,
 } from "@/components/features/task-date-groups";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
@@ -159,24 +160,16 @@ export default function DashboardPage() {
 
   const hasFilters = clientFilter.length > 0 || projectFilter.length > 0;
 
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   const summaryParts: string[] = [];
   if (overdueCount > 0) summaryParts.push(`${overdueCount} atrasada${overdueCount !== 1 ? "s" : ""}`);
   if (todayCount > 0) summaryParts.push(`${todayCount} para hoy`);
   if (summaryParts.length === 0) summaryParts.push("sin tareas pendientes urgentes");
-  const description = `Tienes ${summaryParts.join(" y ")}`;
+  const description = loading ? "Cargando tus tareas..." : `Tienes ${summaryParts.join(" y ")}`;
 
   return (
     <div className="flex h-full flex-col gap-6 animate-fade-in-up">
       <PageHeader
-        title={`Hola, ${user?.name?.split(" ")[0] || "Usuario"}`}
+        title={`Hola, ${user?.name?.split(" ")[0] || "..."}`}
         description={description}
         showNewButton
         newButtonText="Nuevo Proyecto"
@@ -242,7 +235,13 @@ export default function DashboardPage() {
 
           {/* Tasks */}
           <div className="flex-1 overflow-auto space-y-4">
-            {filteredTasks.length === 0 ? (
+            {loading ? (
+              <div className="space-y-1.5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : filteredTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <CheckSquare className="h-12 w-12 mb-3 opacity-30" />
                 <p className="text-lg font-medium">Sin tareas pendientes</p>

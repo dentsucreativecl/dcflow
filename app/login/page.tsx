@@ -37,20 +37,6 @@ export default function LoginPage() {
         setLoading(false)
     }
 
-    // Show loading while checking auth
-    if (authLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-                <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 mb-4">
-                        <Loader2 className="w-8 h-8 text-white animate-spin" />
-                    </div>
-                    <p className="text-slate-400">Cargando...</p>
-                </div>
-            </div>
-        )
-    }
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
             {/* Background decoration */}
@@ -95,7 +81,8 @@ export default function LoginPage() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#F2A6A6]/50 focus:border-transparent transition"
+                                disabled={authLoading}
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#F2A6A6]/50 focus:border-transparent transition disabled:opacity-50"
                                 placeholder="tu@email.com"
                                 required
                             />
@@ -111,7 +98,8 @@ export default function LoginPage() {
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#F2A6A6]/50 focus:border-transparent transition pr-12"
+                                    disabled={authLoading}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#F2A6A6]/50 focus:border-transparent transition pr-12 disabled:opacity-50"
                                     placeholder="••••••••"
                                     required
                                 />
@@ -127,7 +115,7 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={authLoading || loading}
                             className="w-full py-3 px-4 bg-gradient-to-r from-[#F2A6A6] to-[#17385C] text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading ? (
