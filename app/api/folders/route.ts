@@ -44,17 +44,20 @@ export async function POST(request: NextRequest) {
         }
     }
 
+    const folderData = {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        spaceId,
+        color: color || null,
+        useCustomStatus: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    };
+    console.log("FOLDER INSERT DATA:", JSON.stringify(folderData, null, 2));
+
     const { data: folder, error } = await admin
         .from('Folder')
-        .insert({
-            id: crypto.randomUUID(),
-            name: name.trim(),
-            spaceId,
-            color: color || null,
-            useCustomStatus: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        })
+        .insert(folderData)
         .select()
         .single();
 
