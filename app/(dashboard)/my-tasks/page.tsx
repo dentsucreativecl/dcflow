@@ -19,6 +19,8 @@ export default function MyTasksPage() {
   const { openModal } = useAppStore();
   const [tasks, setTasks] = useState<TaskRowData[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [viewMode, setViewMode] = useState<"list" | "grouped">("grouped");
   const [filterStatus, setFilterStatus] = useState<"all" | "todo" | "in_progress" | "done">("all");
 

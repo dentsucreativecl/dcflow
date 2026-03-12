@@ -57,6 +57,8 @@ export default function ProjectsPage() {
   const { user, isAdmin } = useAuth();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [spaceFilter, setSpaceFilter] = useState<string[]>([]);
   const [personFilter, setPersonFilter] = useState<string[]>([]);
@@ -70,7 +72,7 @@ export default function ProjectsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   const fetchProjects = useCallback(async () => {
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
       try {
       const supabase = createClient();
 

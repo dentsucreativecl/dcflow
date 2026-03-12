@@ -134,6 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state from Supabase session
     useEffect(() => {
         const initAuth = async () => {
+            // Safety net: authLoading MUST go to false within 5 seconds.
+            // supabase.auth.getUser() can hang at TCP level and never reject —
+            // if that happens, every page blocks on `if (authLoading) return` forever.
+            const safetyTimer = setTimeout(() => {
+                console.warn('[auth] initAuth timed out after 5s — forcing authLoading=false');
+                setLoading(false);
+            }, 5000);
+
             try {
                 const { data: { user: authUser } } = await supabase.auth.getUser();
 
@@ -144,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 console.error('Auth initialization error:', error);
             } finally {
+                clearTimeout(safetyTimer);
                 setLoading(false);
             }
         };

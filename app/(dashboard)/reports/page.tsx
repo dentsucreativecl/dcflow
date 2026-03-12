@@ -127,6 +127,8 @@ export default function ReportsPage() {
 
   // Raw data
   const [loading, setLoading] = useState(true);
+  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [timeEntries, setTimeEntries] = useState<TimeEntryRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -137,7 +139,7 @@ export default function ReportsPage() {
 
   // ─── Fetch all data once ──────────────────────────────────────────
   const fetchData = useCallback(async () => {
-    if (!currentUserId) return;
+    if (!currentUserId) { setLoading(false); return; }
     setLoading(true);
     const supabase = createClient();
     try {
