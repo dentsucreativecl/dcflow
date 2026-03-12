@@ -140,6 +140,7 @@ export default function ReportsPage() {
     if (!currentUserId) return;
     setLoading(true);
     const supabase = createClient();
+    try {
 
     // 1. Determine member's assigned task IDs (for MEMBER role)
     let memberTaskIds: string[] | null = null;
@@ -254,8 +255,11 @@ export default function ReportsPage() {
       };
     });
     setTimeEntriesEnriched(enriched);
-
-    setLoading(false);
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
+    }
   }, [currentUserId, isFullAccess]);
 
   useEffect(() => {

@@ -71,6 +71,7 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
       if (!user) return;
+      try {
       const supabase = createClient();
 
       // Fetch spaces, folders, and lists via API (bypasses RLS for admins)
@@ -80,7 +81,6 @@ export default function ProjectsPage() {
       const apiLists: Array<{ id: string; name: string; folderId: string | null; spaceId: string; description: string | null; isPitch: boolean; pitchResult: string | null; createdAt: string }> = apiRes?.lists || [];
 
       if (apiLists.length === 0) {
-        setLoading(false);
         return;
       }
 
@@ -201,8 +201,11 @@ export default function ProjectsPage() {
         }
         setTeamListMap(tMap);
       }
-
-      setLoading(false);
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
   }, [user, isAdmin]);
 
   useEffect(() => {

@@ -15,7 +15,7 @@ import {
 import { TaskRow, type TaskRowData } from "@/components/features/task-row";
 
 export default function MyTasksPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { openModal } = useAppStore();
   const [tasks, setTasks] = useState<TaskRowData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,17 @@ export default function MyTasksPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "todo" | "in_progress" | "done">("all");
 
   useEffect(() => {
-    if (!user) return;
+    // Wait for auth to resolve before fetching
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+
+    let cancelled = false;
+
+    // 10-second safety net — stop spinner even if fetch hangs
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 10000);
+
     async function fetchMyTasks() {
       const supabase = createClient();
       try {
@@ -40,7 +50,7 @@ export default function MyTasksPage() {
 
         if (error) throw error;
 
-        if (data) {
+        if (data && !cancelled) {
           const mapped = data
             .map((row: Record<string, unknown>) => {
               const rawTask = row.task as Record<string, unknown> | Record<string, unknown>[] | null;
@@ -67,14 +77,16 @@ export default function MyTasksPage() {
             .filter(Boolean) as TaskRowData[];
           setTasks(mapped);
         }
-      } catch (err) {
-        // Silently fail
+      } catch {
+        // silently fail — finally will clear loading
       } finally {
-        setLoading(false);
+        clearTimeout(timeoutId);
+        if (!cancelled) setLoading(false);
       }
     }
     fetchMyTasks();
-  }, [user]);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
+  }, [user, authLoading]);
 
   const filteredTasks = useMemo(() => {
     if (filterStatus === "all") return tasks;

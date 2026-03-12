@@ -30,6 +30,7 @@ export default function TeamPage() {
   useEffect(() => {
     async function fetchTeam() {
       const supabase = createClient();
+      try {
 
       // Compute monday date before parallel queries
       const today = new Date();
@@ -50,10 +51,7 @@ export default function TeamPage() {
           supabase.from("TimeEntry").select("userId, hours").gte("date", mondayStr),
         ]);
 
-      if (!users) {
-        setLoading(false);
-        return;
-      }
+      if (!users) return;
 
       // Map to TeamMember interface
       const mapped: TeamMember[] = users.map((user) => {
@@ -85,7 +83,11 @@ export default function TeamPage() {
       });
 
       setTeamMembers(mapped);
-      setLoading(false);
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchTeam();

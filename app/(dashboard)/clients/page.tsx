@@ -47,6 +47,7 @@ export default function ClientsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const fetchClients = useCallback(async () => {
+      try {
       const supabase = createClient();
 
       // Fetch Spaces + Lists via API (bypasses RLS for admins)
@@ -55,7 +56,6 @@ export default function ClientsPage() {
       const apiLists: Array<{ id: string; spaceId: string }> = apiRes?.lists || [];
 
       if (!spaces || spaces.length === 0) {
-        setLoading(false);
         return;
       }
 
@@ -103,7 +103,11 @@ export default function ClientsPage() {
       });
 
       setClients(mapped);
-      setLoading(false);
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
   }, []);
 
   useEffect(() => {
