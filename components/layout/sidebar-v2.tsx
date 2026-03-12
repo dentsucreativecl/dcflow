@@ -67,54 +67,50 @@ const navItems = [
 export function SidebarV2({ className }: SidebarV2Props) {
     const pathname = usePathname();
     const { user, isAdmin } = useAuth();
-    const { openModal } = useAppStore();
+    const { openModal, sidebarSpaces: spaces, sidebarFolders: folders, sidebarLists: lists, sidebarLoaded, setSidebarData, clearSidebarCache } = useAppStore();
     const [collapsed, setCollapsed] = useState(false);
 
-    // Data state
-    const [spaces, setSpaces] = useState<Space[]>([]);
-    const [folders, setFolders] = useState<FolderType[]>([]);
-    const [lists, setLists] = useState<ListType[]>([]);
-    const [loading, setLoading] = useState(true);
+    // UI state only — data lives in Zustand store (cached across navigations)
+    const [loading, setLoading] = useState(!sidebarLoaded);
     const [expandedSpaces, setExpandedSpaces] = useState<Set<string>>(new Set());
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [clientsExpanded, setClientsExpanded] = useState(true);
-    const [hoveredSpaceId, setHoveredSpaceId] = useState<string | null>(null);
     const [channelsExpanded, setChannelsExpanded] = useState(true);
     const [channels, setChannels] = useState<Array<{ id: string; name: string; slug: string }>>([]);
     const [dmContacts, setDmContacts] = useState<Array<{ id: string; name: string }>>([]);
 
-    // Fetch spaces, folders, lists
+    // Fetch spaces, folders, lists — skips if already cached in store
     const fetchSpacesData = useCallback(async () => {
         if (!user) return;
         try {
             const res = await fetch("/api/spaces?include=all");
             const data = await res.json();
-
-            const filteredSpaces: Space[] = data.spaces || [];
-            const filteredFolders: FolderType[] = data.folders || [];
-            const filteredLists: ListType[] = data.lists || [];
-
-            setSpaces(filteredSpaces);
-            setFolders(filteredFolders);
-            setLists(filteredLists);
-
-            if (filteredSpaces.length > 0) {
-                setExpandedSpaces(prev => prev.size > 0 ? prev : new Set([filteredSpaces[0].id]));
+            const fetchedSpaces: Space[] = data.spaces || [];
+            const fetchedFolders: FolderType[] = data.folders || [];
+            const fetchedLists: ListType[] = data.lists || [];
+            setSidebarData(fetchedSpaces, fetchedFolders, fetchedLists);
+            if (fetchedSpaces.length > 0) {
+                setExpandedSpaces(prev => prev.size > 0 ? prev : new Set([fetchedSpaces[0].id]));
             }
         } catch {
             // silently fail
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, setSidebarData]);
 
-    useEffect(() => { fetchSpacesData(); }, [fetchSpacesData]);
-
+    // Initial load — skip if store already has data
     useEffect(() => {
-        const handler = () => { fetchSpacesData(); };
+        if (sidebarLoaded) { setLoading(false); return; }
+        fetchSpacesData();
+    }, [fetchSpacesData, sidebarLoaded]);
+
+    // Force re-fetch on explicit refresh events (after creating folders/projects)
+    useEffect(() => {
+        const handler = () => { clearSidebarCache(); fetchSpacesData(); };
         window.addEventListener("dcflow:spaces-refresh", handler);
         return () => window.removeEventListener("dcflow:spaces-refresh", handler);
-    }, [fetchSpacesData]);
+    }, [fetchSpacesData, clearSidebarCache]);
 
     // Fetch channels
     const fetchChannels = useCallback(async () => {
@@ -303,12 +299,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                     );
 
                                     return (
-                                        <div
-                                            key={space.id}
-                                            className="mb-0.5"
-                                            onMouseEnter={() => setHoveredSpaceId(space.id)}
-                                            onMouseLeave={() => setHoveredSpaceId(null)}
-                                        >
+                                        <div key={space.id} className="mb-0.5 group">
                                             <div className="flex items-center rounded-md hover:bg-accent">
                                             <button
                                                 onClick={() => toggleSpace(space.id)}
@@ -327,15 +318,13 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                                     {space.name}
                                                 </span>
                                             </button>
-                                            {hoveredSpaceId === space.id && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); openModal("new-folder", { spaceId: space.id }); }}
-                                                    className="mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent-foreground/10 shrink-0"
-                                                    title="Nuevo folder"
-                                                >
-                                                    <Plus className="h-3.5 w-3.5" />
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); openModal("new-folder", { spaceId: space.id }); }}
+                                                className="opacity-0 group-hover:opacity-100 mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0 transition-opacity"
+                                                title="Nuevo folder"
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </button>
                                             </div>
 
                                             {isExpanded && (

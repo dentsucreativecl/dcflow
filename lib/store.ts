@@ -50,6 +50,11 @@ interface ModalData {
   spaceId?: string;
 }
 
+// Sidebar cache types
+export interface SidebarSpace { id: string; name: string; color: string | null; icon: string | null }
+export interface SidebarFolder { id: string; name: string; spaceId: string }
+export interface SidebarList { id: string; name: string; folderId: string | null; spaceId: string }
+
 // App Store
 interface AppState {
   // Data
@@ -60,6 +65,14 @@ interface AppState {
   calendarEvents: CalendarEvent[];
   milestones: Milestone[];
   activeTimer: { entryId?: string; startTime: Date; taskId: string; taskTitle: string } | null;
+
+  // Sidebar cache
+  sidebarSpaces: SidebarSpace[];
+  sidebarFolders: SidebarFolder[];
+  sidebarLists: SidebarList[];
+  sidebarLoaded: boolean;
+  setSidebarData: (spaces: SidebarSpace[], folders: SidebarFolder[], lists: SidebarList[]) => void;
+  clearSidebarCache: () => void;
 
 
 
@@ -119,6 +132,14 @@ export const useAppStore = create<AppState>()(
       calendarEvents: [],
       milestones: [],
       activeTimer: null,
+
+      // Sidebar cache
+      sidebarSpaces: [],
+      sidebarFolders: [],
+      sidebarLists: [],
+      sidebarLoaded: false,
+      setSidebarData: (spaces, folders, lists) => set({ sidebarSpaces: spaces, sidebarFolders: folders, sidebarLists: lists, sidebarLoaded: true }),
+      clearSidebarCache: () => set({ sidebarLoaded: false }),
 
       // Initial UI State
       sidebarCollapsed: false,
