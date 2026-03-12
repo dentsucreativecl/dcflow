@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
 import { ModalProvider } from "@/components/modals";
 import { AuthProvider } from "@/contexts/auth-context";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "DC Flow - Creative Agency Project Management",
@@ -30,6 +31,7 @@ export default function RootLayout({
               <AuthProvider>
                 {children}
                 <ModalProvider />
+                <SpeedInsights />
               </AuthProvider>
             </TooltipProvider>
           </ToastProvider>
