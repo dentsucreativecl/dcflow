@@ -18,6 +18,8 @@ export const createClient = (): SupabaseClient => {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             auth: {
+                autoRefreshToken: true,
+                persistSession: true,
                 // Replace navigator.locks with a no-op to avoid lock timeout errors
                 // Safe for single-tab SPA usage
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any

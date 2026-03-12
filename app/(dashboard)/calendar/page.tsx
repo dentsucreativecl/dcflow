@@ -37,9 +37,16 @@ export default function CalendarPage() {
   const { openModal } = useAppStore();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchTasks() {
       const supabase = createClient();
 
@@ -53,7 +60,7 @@ export default function CalendarPage() {
         .not("dueDate", "is", null)
         .order("dueDate");
 
-      if (data) {
+      if (data && !cancelled) {
         const mapped: CalendarTask[] = data.map((t: Record<string, unknown>) => {
           const status = t.Status as Record<string, unknown> | null;
           const list = t.List as Record<string, unknown> | null;
@@ -71,10 +78,11 @@ export default function CalendarPage() {
         });
         setTasks(mapped);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
 
-    fetchTasks();
+    fetchTasks().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   const year = currentDate.getFullYear();

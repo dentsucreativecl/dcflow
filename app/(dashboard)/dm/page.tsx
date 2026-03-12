@@ -16,13 +16,22 @@ interface UserContact {
 }
 
 export default function DmIndexPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [contacts, setContacts] = useState<UserContact[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchContacts() {
       const supabase = createClient();
       const { data } = await supabase
@@ -31,11 +40,12 @@ export default function DmIndexPage() {
         .neq("id", user!.id)
         .eq("isActive", true)
         .order("name");
-      if (data) setContacts(data);
-      setLoading(false);
+      if (data && !cancelled) setContacts(data);
+      if (!cancelled) setLoading(false);
     }
-    fetchContacts();
-  }, [user]);
+    fetchContacts().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
+  }, [user, authLoading]);
 
   const filtered = search.trim()
     ? contacts.filter(

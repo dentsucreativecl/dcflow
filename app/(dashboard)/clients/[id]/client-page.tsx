@@ -78,6 +78,8 @@ export default function ClientDetailPage() {
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [accountManager, setAccountManager] = useState<MemberItem | null>(null);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +119,7 @@ export default function ClientDetailPage() {
       .eq("id", id)
       .single();
 
-    if (!spaceData) { setLoading(false); return; }
+    if (!spaceData) return;
     setSpace(spaceData as SpaceDetail);
 
     // Fetch lists (via folders for folder name)
@@ -173,10 +175,19 @@ export default function ClientDetailPage() {
 
     setMembers(mappedMembers);
     setAccountManager(mappedMembers.find((m) => m.role === "OWNER") || null);
-    setLoading(false);
   }, [id]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+    fetchData().finally(() => {
+      clearTimeout(timeoutId);
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; clearTimeout(timeoutId); };
+  }, [fetchData]);
 
   // Listen for refresh events (e.g., after creating a project)
   useEffect(() => {

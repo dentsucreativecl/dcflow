@@ -30,8 +30,15 @@ const WEEKLY_CAPACITY = 40; // Default hours per week
 export default function WorkloadPage() {
   const [workloadData, setWorkloadData] = useState<MemberWorkload[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchWorkload() {
       const supabase = createClient();
 
@@ -42,7 +49,7 @@ export default function WorkloadPage() {
         .eq("isActive", true)
         .order("name");
 
-      if (!users) { setLoading(false); return; }
+      if (!users) { if (!cancelled) setLoading(false); return; }
 
       // Get all task assignments with task status info
       const { data: assignments } = await supabase
@@ -97,11 +104,12 @@ export default function WorkloadPage() {
       });
 
       workload.sort((a, b) => b.utilizationPercent - a.utilizationPercent);
-      setWorkloadData(workload);
-      setLoading(false);
+      if (!cancelled) setWorkloadData(workload);
+      if (!cancelled) setLoading(false);
     }
 
-    fetchWorkload();
+    fetchWorkload().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   const overloadedCount = workloadData.filter((w) => w.isOverloaded).length;

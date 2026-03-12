@@ -67,12 +67,19 @@ export default function TasksPage() {
   const { openModal } = useAppStore();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [spaceFilter, setSpaceFilter] = useState<string[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchTasks() {
       const supabase = createClient();
 
@@ -87,7 +94,7 @@ export default function TasksPage() {
         .is("parentId", null)
         .order("createdAt", { ascending: false });
 
-      if (data) {
+      if (data && !cancelled) {
         const mapped: TaskRow[] = data.map((t: Record<string, unknown>) => {
           const status = t.Status as Record<string, unknown> | null;
           const list = t.List as Record<string, unknown> | null;
@@ -114,10 +121,11 @@ export default function TasksPage() {
         });
         setTasks(mapped);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
 
-    fetchTasks();
+    fetchTasks().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   const spaces = useMemo(

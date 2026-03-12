@@ -72,7 +72,7 @@ function MessageContent({ content, memberNames }: { content: string; memberNames
 
 export default function ChannelPage() {
   const params = useParams();
-  const { user, isAdmin, isSuperAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const slug = params.channelId as string;
   const canManageMembers = isAdmin || isSuperAdmin;
 
@@ -80,6 +80,8 @@ export default function ChannelPage() {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [channel, setChannel] = useState<ChannelData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
   // Members
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
@@ -121,10 +123,18 @@ export default function ChannelPage() {
 
   // Load channel, messages and members
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     if (!slug || slug === "_") return;
 
+    let cancelled = false;
+    setLoading(true);
+
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchChannel() {
-      setLoading(true);
       const supabase = createClient();
 
       const { data: channelData } = await supabase
@@ -134,11 +144,11 @@ export default function ChannelPage() {
         .single();
 
       if (!channelData) {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         return;
       }
 
-      setChannel(channelData);
+      if (!cancelled) setChannel(channelData);
 
       // Fetch messages
       const { data: messagesData } = await supabase
@@ -147,7 +157,7 @@ export default function ChannelPage() {
         .eq("channelId", channelData.id)
         .order("createdAt", { ascending: true });
 
-      if (messagesData) {
+      if (messagesData && !cancelled) {
         setMessages(
           messagesData.map((m: Record<string, unknown>) => ({
             ...m,
@@ -163,7 +173,7 @@ export default function ChannelPage() {
         .select("userId, User!userId(id, name, avatarUrl)")
         .eq("channelId", channelData.id);
 
-      if (membersData) {
+      if (membersData && !cancelled) {
         setChannelMembers(
           membersData.map((m: any) => {
             const u = Array.isArray(m.User) ? m.User[0] : m.User;
@@ -176,12 +186,13 @@ export default function ChannelPage() {
         );
       }
 
-      setLoading(false);
+      if (!cancelled) setLoading(false);
       setTimeout(scrollToBottom, 100);
     }
 
-    fetchChannel();
-  }, [slug, scrollToBottom]);
+    fetchChannel().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
+  }, [slug, scrollToBottom, user, authLoading]);
 
   // Load all users for admin member management
   useEffect(() => {

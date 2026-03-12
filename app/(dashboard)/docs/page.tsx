@@ -41,12 +41,19 @@ export default function DocsPage() {
   const { openModal } = useAppStore();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSpace, setFilterSpace] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showStarredOnly, setShowStarredOnly] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchDocs() {
       const supabase = createClient();
       const { data } = await supabase
@@ -60,7 +67,7 @@ export default function DocsPage() {
         .eq("isArchived", false)
         .order("updatedAt", { ascending: false });
 
-      if (data) {
+      if (data && !cancelled) {
         const mapped: Doc[] = data.map((d: Record<string, unknown>) => {
           const space = d.Space as Record<string, unknown> | null;
           const list = d.List as Record<string, unknown> | null;
@@ -78,10 +85,11 @@ export default function DocsPage() {
         });
         setDocs(mapped);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
 
-    fetchDocs();
+    fetchDocs().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   const toggleFavorite = async (id: string) => {

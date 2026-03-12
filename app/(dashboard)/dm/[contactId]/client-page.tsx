@@ -29,7 +29,7 @@ interface Contact {
 
 export default function DMPage() {
   const params = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const rawContactId = params.contactId as string;
   const contactId = rawContactId === '_' ? (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() || '' : '') : rawContactId;
   const [message, setMessage] = useState("");
@@ -38,20 +38,27 @@ export default function DMPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
+    if (!contactId) { setLoading(false); return; }
+
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchContact() {
-      if (!contactId) {
-        setLoading(false);
-        return;
-      }
       const supabase = createClient();
       const { data } = await supabase
         .from("User")
         .select("id, name, role, jobTitle")
         .eq("id", contactId)
         .single();
-      if (data) {
+      if (data && !cancelled) {
         const initials = data.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2);
         setContact({
           name: data.name,
@@ -60,10 +67,11 @@ export default function DMPage() {
           status: "Disponible",
         });
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
-    fetchContact();
-  }, [contactId]);
+    fetchContact().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
+  }, [contactId, user, authLoading]);
 
   const sendMessage = () => {
     if (!message.trim() && !attachment) return;

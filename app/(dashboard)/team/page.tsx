@@ -30,6 +30,11 @@ export default function TeamPage() {
   const canViewMembers = isSuperAdmin || isAdmin || isPM;
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function fetchTeam() {
       const supabase = createClient();
       try {
@@ -84,17 +89,17 @@ export default function TeamPage() {
         };
       });
 
-      setTeamMembers(mapped);
+      if (!cancelled) setTeamMembers(mapped);
       } catch {
         // silently fail
       } finally {
-        setLoading(false);
+        clearTimeout(timeoutId);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    const safetyTimer = setTimeout(() => setLoading(false), 8000);
-    fetchTeam().finally(() => clearTimeout(safetyTimer));
-    return () => clearTimeout(safetyTimer);
+    fetchTeam();
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   // Get unique departments and statuses

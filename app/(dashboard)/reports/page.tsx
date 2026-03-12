@@ -265,9 +265,15 @@ export default function ReportsPage() {
   }, [currentUserId, isFullAccess]);
 
   useEffect(() => {
-    const safetyTimer = setTimeout(() => setLoading(false), 8000);
-    fetchData().finally(() => clearTimeout(safetyTimer));
-    return () => clearTimeout(safetyTimer);
+    let cancelled = false;
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+    fetchData().finally(() => {
+      clearTimeout(safetyTimer);
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; clearTimeout(safetyTimer); };
   }, [fetchData]);
 
   // ─── Period-filtered data ─────────────────────────────────────────

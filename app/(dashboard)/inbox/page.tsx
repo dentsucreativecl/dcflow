@@ -57,11 +57,18 @@ const getTypeLabel = (type: string) => {
 export default function InboxPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const router = useRouter();
   const { openModal } = useAppStore();
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     const fetchNotifications = async () => {
       try {
         const supabase = createClient();
@@ -126,7 +133,8 @@ export default function InboxPage() {
         setLoading(false);
       }
     };
-    fetchNotifications();
+    fetchNotifications().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   const filteredItems = filter === "unread" ? items.filter((i) => !i.read) : items;

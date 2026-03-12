@@ -17,8 +17,15 @@ interface ChannelInfo {
 export default function ChannelsPage() {
   const [channels, setChannels] = useState<ChannelInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  // Last-resort safety: never stay stuck in loading state
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+
     async function load() {
       const supabase = createClient();
       const { data } = await supabase
@@ -26,10 +33,11 @@ export default function ChannelsPage() {
         .select("id, name, slug, description")
         .eq("isArchived", false)
         .order("name");
-      setChannels(data || []);
-      setLoading(false);
+      if (!cancelled) setChannels(data || []);
+      if (!cancelled) setLoading(false);
     }
-    load();
+    load().finally(() => clearTimeout(timeoutId));
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
   if (loading) {

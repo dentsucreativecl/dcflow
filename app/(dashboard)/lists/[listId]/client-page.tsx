@@ -163,7 +163,7 @@ export default function ListPage() {
     // Get actual listId from URL path if params return placeholder
     const listId = rawListId === '_' ? (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() || '' : '') : rawListId;
     const { openModal } = useAppStore();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { addToast } = useToast();
 
     const [list, setList] = useState<ListData | null>(null);
@@ -447,16 +447,31 @@ export default function ListPage() {
             }
         } catch (error) {
             console.error("Error fetching list data:", error);
-        } finally {
-            setLoading(false);
         }
     }, [listId]);
 
+    // Last-resort safety: never stay stuck in loading state
+    useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
+
     useEffect(() => {
-        setLoading(true);
+        if (authLoading) return;
+        if (!user) { setLoading(false); return; }
         if (!listId) return;
-        fetchData();
-    }, [listId, fetchData]);
+
+        let cancelled = false;
+        setLoading(true);
+
+        const timeoutId = setTimeout(() => {
+            if (!cancelled) { cancelled = true; setLoading(false); }
+        }, 8000);
+
+        fetchData().finally(() => {
+            clearTimeout(timeoutId);
+            if (!cancelled) setLoading(false);
+        });
+
+        return () => { cancelled = true; clearTimeout(timeoutId); };
+    }, [listId, fetchData, user, authLoading]);
 
     // Listen for data-changed events dispatched by modals (fallback for when realtime is not enabled)
     useEffect(() => {

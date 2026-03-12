@@ -211,9 +211,15 @@ export default function ProjectsPage() {
   }, [user, isAdmin]);
 
   useEffect(() => {
-    const safetyTimer = setTimeout(() => setLoading(false), 8000);
-    fetchProjects().finally(() => clearTimeout(safetyTimer));
-    return () => clearTimeout(safetyTimer);
+    let cancelled = false;
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setLoading(false); }
+    }, 8000);
+    fetchProjects().finally(() => {
+      clearTimeout(safetyTimer);
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; clearTimeout(safetyTimer); };
   }, [fetchProjects]);
 
   // Listen for refresh events (e.g. after creating a new project)
