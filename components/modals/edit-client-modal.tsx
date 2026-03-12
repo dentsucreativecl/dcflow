@@ -24,7 +24,7 @@ import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Camera, Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, Camera, Loader2, Trash2 } from "lucide-react";
 
 const PRESET_COLORS = [
   "#3498DB", "#2980B9", "#E74C3C", "#C0392B",
@@ -43,6 +43,11 @@ const SERVICE_COLORS: Record<string, string> = {
   'Dise\u00f1o': '#8b5cf6', 'Social Media': '#06b6d4', 'Producci\u00f3n': '#22c55e',
   'PR/Comunicaciones': '#f97316', 'Media/Pauta': '#ef4444',
 };
+
+interface FolderItem {
+  id: string;
+  name: string;
+}
 
 interface MemberRow {
   userId: string;
@@ -69,7 +74,8 @@ export function EditClientModal() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [services, setServices] = useState<string[]>([]);
-  const [existingFolders, setExistingFolders] = useState<string[]>([]);
+  const [existingFolders, setExistingFolders] = useState<FolderItem[]>([]);
+  const [servicesToDelete, setServicesToDelete] = useState<string[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [allUsers, setAllUsers] = useState<AvailableUser[]>([]);
   const [addUserId, setAddUserId] = useState("");
@@ -116,10 +122,10 @@ export function EditClientModal() {
       }
 
       if (foldersRes.data) {
-        const folderNames = foldersRes.data.map((f: any) => f.name);
-        setExistingFolders(folderNames);
+        const folderItems: FolderItem[] = foldersRes.data.map((f: any) => ({ id: f.id, name: f.name }));
+        setExistingFolders(folderItems);
         // Pre-select services that already have folders
-        setServices(folderNames.filter((n: string) => SOW_SERVICES.includes(n)));
+        setServices(folderItems.map(f => f.name).filter((n: string) => SOW_SERVICES.includes(n)));
       }
 
       if (membersRes.data) {
@@ -171,6 +177,8 @@ export function EditClientModal() {
     }
   };
 
+  const existingFolderNames = existingFolders.map(f => f.name);
+
   const handleSave = async () => {
     if (!spaceId) return;
     setSaving(true);
@@ -185,22 +193,36 @@ export function EditClientModal() {
 
       if (error) throw error;
 
-      // Create new SOW folders (only those not already existing)
+      // Delete deselected SOW folders (cascade deletes their projects)
+      for (const serviceName of servicesToDelete) {
+        const folder = existingFolders.find(f => f.name === serviceName);
+        if (folder) {
+          const res = await fetch(`/api/folders/${folder.id}`, { method: "DELETE" });
+          if (!res.ok) {
+            const { error: delErr } = await res.json().catch(() => ({ error: "Error al eliminar" }));
+            throw new Error(delErr);
+          }
+        }
+      }
+
+      // Create new SOW folders (only those not already existing and not being deleted)
       for (const service of services) {
-        if (!existingFolders.includes(service)) {
-          await supabase.from("Folder").insert({
-            id: crypto.randomUUID(),
-            name: service,
-            spaceId,
-            color: SERVICE_COLORS[service] || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+        if (!existingFolderNames.includes(service)) {
+          const res = await fetch("/api/folders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: service, spaceId, color: SERVICE_COLORS[service] || null }),
           });
+          if (!res.ok) {
+            const { error: createErr } = await res.json().catch(() => ({ error: "Error al crear" }));
+            throw new Error(createErr);
+          }
         }
       }
 
       addToast({ title: "Cliente actualizado", description: `${name} fue guardado.`, type: "success" });
       window.dispatchEvent(new CustomEvent("dcflow:clients-refresh"));
+      window.dispatchEvent(new CustomEvent("dcflow:spaces-refresh"));
       handleClose();
     } catch (err: any) {
       addToast({ title: "Error al guardar", description: err.message, type: "error" });
@@ -356,29 +378,34 @@ export function EditClientModal() {
               <div className="grid grid-cols-2 gap-2">
                 {SOW_SERVICES.map((service) => {
                   const selected = services.includes(service);
-                  const alreadyExists = existingFolders.includes(service);
+                  const alreadyExists = existingFolderNames.includes(service);
+                  const markedForDeletion = servicesToDelete.includes(service);
                   return (
                     <label
                       key={service}
                       className={cn(
                         "flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer transition-colors",
-                        selected
+                        markedForDeletion
+                          ? "border-destructive bg-destructive/10 text-destructive"
+                          : selected
                           ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border hover:bg-accent",
-                        alreadyExists && !selected && "opacity-50"
+                          : "border-border hover:bg-accent"
                       )}
                     >
                       <input
                         type="checkbox"
                         className="sr-only"
-                        checked={selected}
+                        checked={selected && !markedForDeletion}
                         onChange={() => {
-                          if (selected && !alreadyExists) {
-                            // Can uncheck only if folder doesn't exist yet
+                          if (alreadyExists && selected) {
+                            // Toggle mark-for-deletion for existing folders
+                            setServicesToDelete((prev) =>
+                              markedForDeletion
+                                ? prev.filter((s) => s !== service)
+                                : [...prev, service]
+                            );
+                          } else if (selected && !alreadyExists) {
                             setServices((prev) => prev.filter((s) => s !== service));
-                          } else if (selected && alreadyExists) {
-                            // Don't remove existing folders
-                            return;
                           } else {
                             setServices((prev) => [...prev, service]);
                           }
@@ -388,14 +415,26 @@ export function EditClientModal() {
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: SERVICE_COLORS[service] }}
                       />
-                      {service}
-                      {alreadyExists && selected && (
+                      <span className={cn(markedForDeletion && "line-through")}>{service}</span>
+                      {markedForDeletion && (
+                        <span className="text-[10px] ml-auto font-medium">eliminar</span>
+                      )}
+                      {alreadyExists && selected && !markedForDeletion && (
                         <span className="text-[10px] text-muted-foreground ml-auto">existente</span>
                       )}
                     </label>
                   );
                 })}
               </div>
+              {servicesToDelete.length > 0 && (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Se eliminarán los siguientes folders y todos sus proyectos:</p>
+                    <p className="mt-0.5 text-destructive/80">{servicesToDelete.join(", ")}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Members */}

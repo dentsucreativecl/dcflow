@@ -232,74 +232,73 @@ export function SidebarV2({ className }: SidebarV2Props) {
                 </button>
             </div>
 
-            <ScrollArea className="flex-1">
-                {/* Main Nav */}
-                <nav className="px-2 py-2 space-y-0.5">
-                    {navItems.map(item => {
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-                        const plusAction = navPlusActions[item.href];
-                        const showPlus = plusAction && (!plusAction.adminOnly || (!authLoading && isAdmin));
-                        return (
-                            <div
-                                key={item.href}
-                                className={cn(
-                                    "flex items-center rounded-md transition-colors",
-                                    isActive ? "bg-accent" : "hover:bg-accent"
-                                )}
-                            >
-                                <Link
-                                    href={item.href}
-                                    className={cn(
-                                        "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
-                                        isActive ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-accent-foreground"
-                                    )}
-                                >
-                                    <item.icon className="h-4 w-4 shrink-0" />
-                                    {item.label}
-                                </Link>
-                                {showPlus && (
-                                    <button
-                                        onClick={() => openModal(plusAction.modal)}
-                                        className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
-                                        title={`Nuevo/a ${item.label.toLowerCase()}`}
-                                    >
-                                        <Plus className="h-3.5 w-3.5" />
-                                    </button>
-                                )}
-                            </div>
-                        );
-                    })}
-                    {!authLoading && isAdmin && (
+            {/* Main Nav — outside ScrollArea so it stays visible when CLIENTES expands */}
+            <nav className="px-2 py-2 space-y-0.5 border-b border-border shrink-0">
+                {navItems.map(item => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    const plusAction = navPlusActions[item.href];
+                    const showPlus = !!plusAction && (!plusAction.adminOnly || (!authLoading && isAdmin));
+                    return (
                         <div
+                            key={item.href}
                             className={cn(
                                 "flex items-center rounded-md transition-colors",
-                                pathname === "/clients" || pathname.startsWith("/clients/") ? "bg-accent" : "hover:bg-accent"
+                                isActive ? "bg-accent" : "hover:bg-accent"
                             )}
                         >
                             <Link
-                                href="/clients"
+                                href={item.href}
                                 className={cn(
                                     "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
-                                    pathname === "/clients" || pathname.startsWith("/clients/")
-                                        ? "text-accent-foreground font-medium"
-                                        : "text-muted-foreground hover:text-accent-foreground"
+                                    isActive ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-accent-foreground"
                                 )}
                             >
-                                <Building2 className="h-4 w-4 shrink-0" />
-                                Clientes
+                                <item.icon className="h-4 w-4 shrink-0" />
+                                {item.label}
                             </Link>
-                            <button
-                                onClick={() => openModal("new-client")}
-                                className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
-                                title="Nuevo cliente"
-                            >
-                                <Plus className="h-3.5 w-3.5" />
-                            </button>
+                            {showPlus && (
+                                <button
+                                    onClick={() => openModal(plusAction.modal)}
+                                    className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
+                                    title={`Nuevo/a ${item.label.toLowerCase()}`}
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                </button>
+                            )}
                         </div>
-                    )}
-                </nav>
+                    );
+                })}
+                {!authLoading && isAdmin && (
+                    <div
+                        className={cn(
+                            "flex items-center rounded-md transition-colors",
+                            pathname === "/clients" || pathname.startsWith("/clients/") ? "bg-accent" : "hover:bg-accent"
+                        )}
+                    >
+                        <Link
+                            href="/clients"
+                            className={cn(
+                                "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
+                                pathname === "/clients" || pathname.startsWith("/clients/")
+                                    ? "text-accent-foreground font-medium"
+                                    : "text-muted-foreground hover:text-accent-foreground"
+                            )}
+                        >
+                            <Building2 className="h-4 w-4 shrink-0" />
+                            Clientes
+                        </Link>
+                        <button
+                            onClick={() => openModal("new-client")}
+                            className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
+                            title="Nuevo cliente"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                )}
+            </nav>
 
-                <div className="mx-3 border-b border-border" />
+            <ScrollArea className="flex-1">
 
                 {/* CLIENTES Section */}
                 <div className="py-2">
