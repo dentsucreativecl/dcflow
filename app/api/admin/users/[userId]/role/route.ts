@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function PATCH(
     request: NextRequest,
@@ -8,14 +9,16 @@ export async function PATCH(
     const { userId } = await params;
     const supabase = createServerClient();
 
-    // Authenticate
+    // Authenticate via cookie session
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify SUPER_ADMIN
-    const { data: caller } = await supabase
+    // Use admin client to bypass RLS for reading/writing roles
+    const admin = createAdminClient();
+
+    const { data: caller } = await admin
         .from('User')
         .select('role')
         .eq('id', authUser.id)
@@ -26,6 +29,9 @@ export async function PATCH(
     }
 
     const { role } = await request.json();
+
+    console.log('ROLE CHANGE REQUEST', { requestingUserRole: caller.role, targetRole: role, targetUserId: userId });
+
     if (!['MEMBER', 'PM', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
         return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
@@ -40,7 +46,7 @@ export async function PATCH(
         return NextResponse.json({ error: 'Cannot change own role' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await admin
         .from('User')
         .update({ role })
         .eq('id', userId);

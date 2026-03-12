@@ -908,6 +908,9 @@ export default function AdminPage() {
                                                                     <SelectItem value="MEMBER">Miembro</SelectItem>
                                                                     <SelectItem value="PM">PM</SelectItem>
                                                                     <SelectItem value="ADMIN">Admin</SelectItem>
+                                                                    {isSuperAdmin && (
+                                                                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                                                                    )}
                                                                 </SelectContent>
                                                             </Select>
                                                             {u.isActive ? (
