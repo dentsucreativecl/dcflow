@@ -13,7 +13,6 @@ export const createClient = (): SupabaseClient => {
     if (typeof window !== 'undefined' && window.__supabase) {
         return window.__supabase
     }
-    console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
     const client = createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

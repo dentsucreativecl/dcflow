@@ -16,6 +16,7 @@ import { BulkStatusChangeModal } from "./bulk-status-change-modal";
 import { BulkAssignModal } from "./bulk-assign-modal";
 import { NewChannelModal } from "./new-channel-modal";
 import { EditClientModal } from "./edit-client-modal";
+import { NewFolderModal } from "./new-folder-modal";
 import { useAppStore } from "@/lib/store";
 
 export function ModalProvider() {
@@ -38,6 +39,7 @@ export function ModalProvider() {
       <BulkAssignModal />
       <NewChannelModal />
       {activeModal === "edit-client" && <EditClientModal />}
+      {activeModal === "new-folder" && <NewFolderModal />}
     </>
   );
 }

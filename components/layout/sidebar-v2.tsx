@@ -83,35 +83,37 @@ export function SidebarV2({ className }: SidebarV2Props) {
     const [dmContacts, setDmContacts] = useState<Array<{ id: string; name: string }>>([]);
 
     // Fetch spaces, folders, lists
-    useEffect(() => {
-        async function fetchData() {
-            if (!user) return;
-            const supabase = createClient();
+    const fetchSpacesData = useCallback(async () => {
+        if (!user) return;
+        try {
+            const res = await fetch("/api/spaces?include=all");
+            const data = await res.json();
 
-            try {
-                // Use API route that bypasses RLS for admins
-                const res = await fetch("/api/spaces?include=all");
-                const data = await res.json();
+            const filteredSpaces: Space[] = data.spaces || [];
+            const filteredFolders: FolderType[] = data.folders || [];
+            const filteredLists: ListType[] = data.lists || [];
 
-                const filteredSpaces: Space[] = data.spaces || [];
-                const filteredFolders: FolderType[] = data.folders || [];
-                const filteredLists: ListType[] = data.lists || [];
+            setSpaces(filteredSpaces);
+            setFolders(filteredFolders);
+            setLists(filteredLists);
 
-                setSpaces(filteredSpaces);
-                setFolders(filteredFolders);
-                setLists(filteredLists);
-
-                if (filteredSpaces.length > 0) {
-                    setExpandedSpaces(new Set([filteredSpaces[0].id]));
-                }
-            } catch {
-                // silently fail
-            } finally {
-                setLoading(false);
+            if (filteredSpaces.length > 0) {
+                setExpandedSpaces(prev => prev.size > 0 ? prev : new Set([filteredSpaces[0].id]));
             }
+        } catch {
+            // silently fail
+        } finally {
+            setLoading(false);
         }
-        fetchData();
-    }, [user, isAdmin]);
+    }, [user]);
+
+    useEffect(() => { fetchSpacesData(); }, [fetchSpacesData]);
+
+    useEffect(() => {
+        const handler = () => { fetchSpacesData(); };
+        window.addEventListener("dcflow:spaces-refresh", handler);
+        return () => window.removeEventListener("dcflow:spaces-refresh", handler);
+    }, [fetchSpacesData]);
 
     // Fetch channels
     const fetchChannels = useCallback(async () => {
@@ -300,10 +302,11 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                     );
 
                                     return (
-                                        <div key={space.id} className="mb-0.5">
+                                        <div key={space.id} className="mb-0.5 group/space">
+                                            <div className="flex items-center rounded-md hover:bg-accent">
                                             <button
                                                 onClick={() => toggleSpace(space.id)}
-                                                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground text-foreground"
+                                                className="flex flex-1 items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-foreground min-w-0"
                                             >
                                                 {isExpanded ? (
                                                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -318,6 +321,14 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                                     {space.name}
                                                 </span>
                                             </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); openModal("new-folder", { spaceId: space.id }); }}
+                                                className="opacity-0 group-hover/space:opacity-100 mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent-foreground/10 transition-opacity shrink-0"
+                                                title="Nuevo folder"
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </button>
+                                            </div>
 
                                             {isExpanded && (
                                                 <div className="ml-5 mt-0.5 space-y-0.5">

@@ -30,6 +30,7 @@ export type ModalType =
   | "new-channel"
   | "edit-client"
   | "new-document"
+  | "new-folder"
   | null;
 
 interface ModalData {
@@ -46,6 +47,7 @@ interface ModalData {
   message?: string;
   taskIds?: string[];
   statuses?: Array<{ id: string; name: string; color: string }>;
+  spaceId?: string;
 }
 
 // App Store

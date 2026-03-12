@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ChevronRight, Edit, Loader2, FolderKanban, Users, X, Camera,
+  ChevronRight, Edit, Loader2, FolderKanban, Users, X, Camera, FolderPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -290,6 +290,17 @@ export default function ClientDetailPage() {
         {/* Tab content */}
         {activeTab === "projects" && (
           <div className="space-y-2">
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => space && openModal("new-folder", { spaceId: space.id })}
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+                Nuevo Folder
+              </Button>
+            </div>
             {lists.length > 0 ? lists.map((list) => (
               <Link
                 key={list.id}
