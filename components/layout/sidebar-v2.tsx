@@ -78,6 +78,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
     const [expandedSpaces, setExpandedSpaces] = useState<Set<string>>(new Set());
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [clientsExpanded, setClientsExpanded] = useState(true);
+    const [hoveredSpaceId, setHoveredSpaceId] = useState<string | null>(null);
     const [channelsExpanded, setChannelsExpanded] = useState(true);
     const [channels, setChannels] = useState<Array<{ id: string; name: string; slug: string }>>([]);
     const [dmContacts, setDmContacts] = useState<Array<{ id: string; name: string }>>([]);
@@ -302,7 +303,12 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                     );
 
                                     return (
-                                        <div key={space.id} className="mb-0.5 group/space">
+                                        <div
+                                            key={space.id}
+                                            className="mb-0.5"
+                                            onMouseEnter={() => setHoveredSpaceId(space.id)}
+                                            onMouseLeave={() => setHoveredSpaceId(null)}
+                                        >
                                             <div className="flex items-center rounded-md hover:bg-accent">
                                             <button
                                                 onClick={() => toggleSpace(space.id)}
@@ -321,13 +327,15 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                                     {space.name}
                                                 </span>
                                             </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); openModal("new-folder", { spaceId: space.id }); }}
-                                                className="opacity-0 group-hover/space:opacity-100 mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent-foreground/10 transition-opacity shrink-0"
-                                                title="Nuevo folder"
-                                            >
-                                                <Plus className="h-3.5 w-3.5" />
-                                            </button>
+                                            {hoveredSpaceId === space.id && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); openModal("new-folder", { spaceId: space.id }); }}
+                                                    className="mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent-foreground/10 shrink-0"
+                                                    title="Nuevo folder"
+                                                >
+                                                    <Plus className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
                                             </div>
 
                                             {isExpanded && (
