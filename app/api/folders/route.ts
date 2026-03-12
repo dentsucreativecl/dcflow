@@ -51,6 +51,9 @@ export async function POST(request: NextRequest) {
             name: name.trim(),
             spaceId,
             color: color || null,
+            useCustomStatus: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
         })
         .select()
         .single();
