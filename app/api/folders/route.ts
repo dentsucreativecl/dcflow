@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     const { data: folder, error } = await admin
         .from('Folder')
         .insert({
+            id: crypto.randomUUID(),
             name: name.trim(),
             spaceId,
             color: color || null,
