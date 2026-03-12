@@ -64,6 +64,13 @@ const navItems = [
     { label: "Equipo", icon: Users, href: "/team" },
 ];
 
+// Modal to open when "+" is clicked for each nav item
+const navPlusActions: Record<string, { modal: "new-project" | "new-channel" | "new-member"; adminOnly: boolean }> = {
+    "/projects": { modal: "new-project", adminOnly: false },
+    "/channels": { modal: "new-channel", adminOnly: true },
+    "/team": { modal: "new-member", adminOnly: true },
+};
+
 export function SidebarV2({ className }: SidebarV2Props) {
     const pathname = usePathname();
     const { user, isAdmin } = useAuth();
@@ -229,35 +236,65 @@ export function SidebarV2({ className }: SidebarV2Props) {
                 <nav className="px-2 py-2 space-y-0.5">
                     {navItems.map(item => {
                         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                        const plusAction = navPlusActions[item.href];
+                        const showPlus = plusAction && (!plusAction.adminOnly || isAdmin);
                         return (
-                            <Link
+                            <div
                                 key={item.href}
-                                href={item.href}
                                 className={cn(
-                                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
-                                    isActive
-                                        ? "bg-accent text-accent-foreground font-medium"
-                                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                    "flex items-center rounded-md transition-colors",
+                                    isActive ? "bg-accent" : "hover:bg-accent"
                                 )}
                             >
-                                <item.icon className="h-4 w-4 shrink-0" />
-                                {item.label}
-                            </Link>
+                                <Link
+                                    href={item.href}
+                                    className={cn(
+                                        "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
+                                        isActive ? "text-accent-foreground font-medium" : "text-muted-foreground hover:text-accent-foreground"
+                                    )}
+                                >
+                                    <item.icon className="h-4 w-4 shrink-0" />
+                                    {item.label}
+                                </Link>
+                                {showPlus && (
+                                    <button
+                                        onClick={() => openModal(plusAction.modal)}
+                                        className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
+                                        title={`Nuevo/a ${item.label.toLowerCase()}`}
+                                    >
+                                        <Plus className="h-3.5 w-3.5" />
+                                    </button>
+                                )}
+                            </div>
                         );
                     })}
                     {(user?.supabaseRole === "SUPER_ADMIN" || user?.supabaseRole === "ADMIN") && (
-                        <Link
-                            href="/clients"
+                        <div
                             className={cn(
-                                "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
-                                pathname === "/clients" || pathname.startsWith("/clients/")
-                                    ? "bg-accent text-accent-foreground font-medium"
-                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                "flex items-center rounded-md transition-colors",
+                                pathname === "/clients" || pathname.startsWith("/clients/") ? "bg-accent" : "hover:bg-accent"
                             )}
                         >
-                            <Building2 className="h-4 w-4 shrink-0" />
-                            Clientes
-                        </Link>
+                            <Link
+                                href="/clients"
+                                className={cn(
+                                    "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
+                                    pathname === "/clients" || pathname.startsWith("/clients/")
+                                        ? "text-accent-foreground font-medium"
+                                        : "text-muted-foreground hover:text-accent-foreground"
+                                )}
+                            >
+                                <Building2 className="h-4 w-4 shrink-0" />
+                                Clientes
+                            </Link>
+                            <button
+                                onClick={() => openModal("new-client")}
+                                className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
+                                title="Nuevo cliente"
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
                     )}
                 </nav>
 
@@ -265,13 +302,24 @@ export function SidebarV2({ className }: SidebarV2Props) {
 
                 {/* CLIENTES Section */}
                 <div className="py-2">
-                    <button
-                        onClick={() => setClientsExpanded(!clientsExpanded)}
-                        className="flex items-center gap-1 w-full px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        {clientsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                        Clientes
-                    </button>
+                    <div className="flex items-center justify-between px-2.5">
+                        <button
+                            onClick={() => setClientsExpanded(!clientsExpanded)}
+                            className="flex items-center gap-1 px-1.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            {clientsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            Clientes
+                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={() => openModal("new-client")}
+                                className="text-muted-foreground hover:text-foreground"
+                                title="Nuevo cliente"
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                            </button>
+                        )}
+                    </div>
 
                     {clientsExpanded && (
                         <nav className="px-2 mt-1">
@@ -320,7 +368,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); openModal("new-folder", { spaceId: space.id }); }}
-                                                className="opacity-0 group-hover:opacity-100 mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0 transition-opacity"
+                                                className="mr-1 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
                                                 title="Nuevo folder"
                                             >
                                                 <Plus className="h-3.5 w-3.5" />
