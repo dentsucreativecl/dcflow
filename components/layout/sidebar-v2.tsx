@@ -200,20 +200,22 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             <item.icon className="h-5 w-5" />
                         </Link>
                     ))}
-                    {!authLoading && isAdmin && (
-                        <Link
-                            href="/clients"
-                            className={cn(
-                                "flex items-center justify-center h-9 w-9 rounded-md transition-colors",
-                                pathname === "/clients" || pathname.startsWith("/clients/")
-                                    ? "bg-accent text-accent-foreground"
-                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            )}
-                            title="Clientes"
-                        >
-                            <Building2 className="h-5 w-5" />
-                        </Link>
-                    )}
+                    <Link
+                        href="/clients"
+                        className={cn(
+                            "flex items-center justify-center h-9 w-9 rounded-md transition-colors",
+                            authLoading
+                                ? "invisible pointer-events-none"
+                                : !isAdmin
+                                    ? "hidden"
+                                    : pathname === "/clients" || pathname.startsWith("/clients/")
+                                        ? "bg-accent text-accent-foreground"
+                                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                        title="Clientes"
+                    >
+                        <Building2 className="h-5 w-5" />
+                    </Link>
                 </nav>
             </div>
         );
@@ -268,34 +270,37 @@ export function SidebarV2({ className }: SidebarV2Props) {
                         </div>
                     );
                 })}
-                {!authLoading && isAdmin && (
-                    <div
+                {/* Always reserve space during authLoading to avoid CLS; hide for non-admins after auth resolves */}
+                <div
+                    className={cn(
+                        "flex items-center rounded-md transition-colors",
+                        authLoading
+                            ? "invisible pointer-events-none"
+                            : !isAdmin
+                                ? "hidden"
+                                : pathname === "/clients" || pathname.startsWith("/clients/") ? "bg-accent" : "hover:bg-accent"
+                    )}
+                >
+                    <Link
+                        href="/clients"
                         className={cn(
-                            "flex items-center rounded-md transition-colors",
-                            pathname === "/clients" || pathname.startsWith("/clients/") ? "bg-accent" : "hover:bg-accent"
+                            "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
+                            pathname === "/clients" || pathname.startsWith("/clients/")
+                                ? "text-accent-foreground font-medium"
+                                : "text-muted-foreground hover:text-accent-foreground"
                         )}
                     >
-                        <Link
-                            href="/clients"
-                            className={cn(
-                                "flex flex-1 items-center gap-2.5 px-2.5 py-1.5 text-sm",
-                                pathname === "/clients" || pathname.startsWith("/clients/")
-                                    ? "text-accent-foreground font-medium"
-                                    : "text-muted-foreground hover:text-accent-foreground"
-                            )}
-                        >
-                            <Building2 className="h-4 w-4 shrink-0" />
-                            Clientes
-                        </Link>
-                        <button
-                            onClick={() => openModal("new-client")}
-                            className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
-                            title="Nuevo cliente"
-                        >
-                            <Plus className="h-3.5 w-3.5" />
-                        </button>
-                    </div>
-                )}
+                        <Building2 className="h-4 w-4 shrink-0" />
+                        Clientes
+                    </Link>
+                    <button
+                        onClick={() => openModal("new-client")}
+                        className="mr-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground shrink-0"
+                        title="Nuevo cliente"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                    </button>
+                </div>
             </nav>
 
             <ScrollArea className="flex-1">
@@ -554,20 +559,22 @@ export function SidebarV2({ className }: SidebarV2Props) {
                     <Settings className="h-4 w-4 shrink-0" />
                     Settings
                 </Link>
-                {(user?.supabaseRole === "SUPER_ADMIN" || user?.supabaseRole === "ADMIN") && (
-                    <Link
-                        href="/admin"
-                        className={cn(
-                            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
-                            pathname === "/admin" || pathname.startsWith("/admin/")
-                                ? "bg-accent text-accent-foreground font-medium"
-                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        )}
-                    >
-                        <ShieldCheck className="h-4 w-4 shrink-0" />
-                        Admin
-                    </Link>
-                )}
+                <Link
+                    href="/admin"
+                    className={cn(
+                        "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
+                        authLoading
+                            ? "invisible pointer-events-none"
+                            : !isAdmin
+                                ? "hidden"
+                                : pathname === "/admin" || pathname.startsWith("/admin/")
+                                    ? "bg-accent text-accent-foreground font-medium"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                >
+                    <ShieldCheck className="h-4 w-4 shrink-0" />
+                    Admin
+                </Link>
             </div>
         </div>
     );
