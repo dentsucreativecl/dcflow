@@ -73,7 +73,7 @@ const navPlusActions: Record<string, { modal: "new-project" | "new-channel" | "n
 
 export function SidebarV2({ className }: SidebarV2Props) {
     const pathname = usePathname();
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, loading: authLoading } = useAuth();
     const { openModal, sidebarSpaces: spaces, sidebarFolders: folders, sidebarLists: lists, sidebarLoaded, setSidebarData, clearSidebarCache } = useAppStore();
     const [collapsed, setCollapsed] = useState(false);
 
@@ -89,6 +89,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
     // Fetch spaces, folders, lists — skips if already cached in store
     const fetchSpacesData = useCallback(async () => {
         if (!user) return;
+        setLoading(true);
         try {
             const res = await fetch("/api/spaces?include=all");
             const data = await res.json();
@@ -199,7 +200,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             <item.icon className="h-5 w-5" />
                         </Link>
                     ))}
-                    {(user?.supabaseRole === "SUPER_ADMIN" || user?.supabaseRole === "ADMIN") && (
+                    {!authLoading && isAdmin && (
                         <Link
                             href="/clients"
                             className={cn(
@@ -237,7 +238,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                     {navItems.map(item => {
                         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                         const plusAction = navPlusActions[item.href];
-                        const showPlus = plusAction && (!plusAction.adminOnly || isAdmin);
+                        const showPlus = plusAction && (!plusAction.adminOnly || (!authLoading && isAdmin));
                         return (
                             <div
                                 key={item.href}
@@ -268,7 +269,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             </div>
                         );
                     })}
-                    {(user?.supabaseRole === "SUPER_ADMIN" || user?.supabaseRole === "ADMIN") && (
+                    {!authLoading && isAdmin && (
                         <div
                             className={cn(
                                 "flex items-center rounded-md transition-colors",
@@ -310,7 +311,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             {clientsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                             Clientes
                         </button>
-                        {isAdmin && (
+                        {!authLoading && isAdmin && (
                             <button
                                 onClick={() => openModal("new-client")}
                                 className="text-muted-foreground hover:text-foreground"
@@ -458,7 +459,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                             {channelsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                             Canales
                         </button>
-                        {isAdmin && (
+                        {!authLoading && isAdmin && (
                             <button
                                 onClick={() => openModal("new-channel")}
                                 className="text-muted-foreground hover:text-foreground"
