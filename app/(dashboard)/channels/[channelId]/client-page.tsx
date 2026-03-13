@@ -259,7 +259,7 @@ export default function ChannelPage() {
       )
       .subscribe((status, err) => {
         if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime error, continuing without realtime:', err);
+          console.warn('Realtime error:', err?.message || JSON.stringify(err) || 'unknown error');
         }
       });
 

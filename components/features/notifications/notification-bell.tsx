@@ -78,7 +78,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             )
             .subscribe((status, err) => {
                 if (status === 'CHANNEL_ERROR') {
-                    console.warn('Realtime error, continuing without realtime:', err);
+                    console.warn('Realtime error:', err?.message || JSON.stringify(err) || 'unknown error');
                 }
             });
 
@@ -95,15 +95,20 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         const supabase = createClient();
 
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from("Notification")
                 .select(`
-                    *,
-                    actor:User!actorId(id, name, avatarUrl)
+                    id, type, title, message, isRead, data, createdAt,
+                    actor:User!Notification_actorId_fkey(id, name, avatarUrl)
                 `)
                 .eq("userId", userId)
                 .order("createdAt", { ascending: false })
                 .limit(20);
+
+            if (error) {
+                console.error("Error fetching notifications:", error.message, error.details, error.hint);
+                return;
+            }
 
             if (data) {
                 setNotifications(data as unknown as Notification[]);
