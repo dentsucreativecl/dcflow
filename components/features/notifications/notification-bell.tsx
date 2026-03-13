@@ -46,7 +46,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
         fetchNotifications();
 
-        // Realtime subscription
+        // Realtime subscription with graceful error handling
         const supabase = createClient();
 
         const channel = supabase
@@ -69,17 +69,25 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                         payload.eventType === "INSERT"
                     ) {
                         const newNotif = payload.new as Notification;
-                        new Notification("DC Flow", {
+                        new window.Notification("DC Flow", {
                             body: newNotif.title,
                             icon: "/img/dc-ico.png"
                         });
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (status === 'CHANNEL_ERROR') {
+                    console.warn('Realtime error, continuing without realtime:', err);
+                }
+            });
+
+        // Fallback polling every 30s in case Realtime is down
+        const interval = setInterval(fetchNotifications, 30000);
 
         return () => {
             supabase.removeChannel(channel);
+            clearInterval(interval);
         };
     }, [userId]);
 

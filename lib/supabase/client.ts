@@ -25,6 +25,10 @@ export const createClient = (): SupabaseClient => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 lock: async (_name: string, _timeout: number, fn: () => Promise<any>) => fn(),
             },
+            realtime: {
+                params: { eventsPerSecond: 10 },
+                timeout: 10000,
+            },
         }
     )
     if (typeof window !== 'undefined') {

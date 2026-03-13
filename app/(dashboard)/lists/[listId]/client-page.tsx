@@ -489,32 +489,21 @@ export default function ListPage() {
             .channel(`list-${listId}-tasks`)
             .on(
                 'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'Task',
-                    filter: `listId=eq.${listId}`
-                },
-                () => {
-                    fetchData();
-                }
+                { event: '*', schema: 'public', table: 'Task', filter: `listId=eq.${listId}` },
+                () => { fetchData(); }
             )
             .on(
                 'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'TaskAssignment'
-                },
-                () => {
-                    fetchData();
-                }
+                { event: '*', schema: 'public', table: 'TaskAssignment' },
+                () => { fetchData(); }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (status === 'CHANNEL_ERROR') {
+                    console.warn('Realtime error, continuing without realtime:', err);
+                }
+            });
 
-        return () => {
-            supabase.removeChannel(taskChannel);
-        };
+        return () => { supabase.removeChannel(taskChannel); };
     }, [listId, fetchData]);
 
     const toggleTaskSelection = (taskId: string) => {

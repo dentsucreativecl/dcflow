@@ -257,11 +257,13 @@ export default function ChannelPage() {
           setTimeout(scrollToBottom, 50);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('Realtime error, continuing without realtime:', err);
+        }
+      });
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
+    return () => { supabase.removeChannel(subscription); };
   }, [channel?.id, scrollToBottom]);
 
   const sendMessage = async () => {
