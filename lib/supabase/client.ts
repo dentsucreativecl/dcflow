@@ -31,6 +31,14 @@ export const createClient = (): SupabaseClient => {
             },
         }
     )
+    // When the JWT is refreshed, pass the new token to Realtime
+    // so WebSocket subscriptions don't keep using the expired one
+    client.auth.onAuthStateChange((event, session) => {
+        if (event === 'TOKEN_REFRESHED' && session) {
+            client.realtime.setAuth(session.access_token)
+        }
+    })
+
     if (typeof window !== 'undefined') {
         window.__supabase = client
     }
