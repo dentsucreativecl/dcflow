@@ -18,25 +18,19 @@ export function VisibilityRefetchProvider({ children }: { children: React.ReactN
             const supabase = createClient();
 
             try {
-                // Force session refresh — this renews the JWT if expired
-                const { data: { session } } = await supabase.auth.getSession();
+                // Force a real token refresh from the server — getSession() only
+                // returns the cached (possibly expired) token
+                const { data } = await supabase.auth.refreshSession();
 
-                if (!session) return;
-
-                // Check if the token is stale (less than 60s remaining)
-                const secsLeft = session.expires_at
-                    ? session.expires_at - Math.floor(Date.now() / 1000)
-                    : Infinity;
-
-                if (secsLeft < 60) {
-                    await supabase.auth.refreshSession();
+                if (data.session) {
+                    // Propagate fresh JWT to Realtime WebSocket subscriptions
+                    supabase.realtime.setAuth(data.session.access_token);
+                    // Notify all pages to re-fetch their data with the fresh token
+                    window.dispatchEvent(new Event("dcflow:refresh"));
                 }
             } catch {
                 // Silent — page-level safety nets handle the fallback
             }
-
-            // Notify all pages to re-fetch their data
-            window.dispatchEvent(new Event("dcflow:refresh"));
         };
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
