@@ -128,7 +128,11 @@ export default function ClientsPage() {
   useEffect(() => {
     const handler = () => fetchClients();
     window.addEventListener("dcflow:clients-refresh", handler);
-    return () => window.removeEventListener("dcflow:clients-refresh", handler);
+    window.addEventListener("dcflow:refresh", handler);
+    return () => {
+      window.removeEventListener("dcflow:clients-refresh", handler);
+      window.removeEventListener("dcflow:refresh", handler);
+    };
   }, [fetchClients]);
 
   const filteredClients = useMemo(() => {

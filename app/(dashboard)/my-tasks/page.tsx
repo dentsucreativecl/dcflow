@@ -23,6 +23,12 @@ export default function MyTasksPage() {
   useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [viewMode, setViewMode] = useState<"list" | "grouped">("grouped");
   const [filterStatus, setFilterStatus] = useState<"all" | "todo" | "in_progress" | "done">("all");
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     // Wait for auth to resolve before fetching
@@ -88,7 +94,7 @@ export default function MyTasksPage() {
     }
     fetchMyTasks();
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, [user, authLoading]);
+  }, [user, authLoading, refreshKey]);
 
   const filteredTasks = useMemo(() => {
     if (filterStatus === "all") return tasks;

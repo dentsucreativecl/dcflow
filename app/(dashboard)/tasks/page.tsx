@@ -73,6 +73,12 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [spaceFilter, setSpaceFilter] = useState<string[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,7 +132,7 @@ export default function TasksPage() {
 
     fetchTasks().finally(() => clearTimeout(timeoutId));
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, []);
+  }, [refreshKey]);
 
   const spaces = useMemo(
     () => [...new Set(tasks.map((t) => t.spaceName))].filter(Boolean),

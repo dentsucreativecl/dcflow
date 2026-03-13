@@ -62,6 +62,12 @@ export default function InboxPage() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const router = useRouter();
   const { openModal } = useAppStore();
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,7 +141,7 @@ export default function InboxPage() {
     };
     fetchNotifications().finally(() => clearTimeout(timeoutId));
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, []);
+  }, [refreshKey]);
 
   const filteredItems = filter === "unread" ? items.filter((i) => !i.read) : items;
   const unreadCount = items.filter((i) => !i.read).length;

@@ -83,6 +83,13 @@ export default function ChannelPage() {
   // Last-resort safety: never stay stuck in loading state
   useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
+
   // Members
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [allUsers, setAllUsers] = useState<Array<{ id: string; name: string }>>([]);
@@ -192,7 +199,7 @@ export default function ChannelPage() {
 
     fetchChannel().finally(() => clearTimeout(timeoutId));
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, [slug, scrollToBottom, user, authLoading]);
+  }, [slug, scrollToBottom, user, authLoading, refreshKey]);
 
   // Load all users for admin member management
   useEffect(() => {

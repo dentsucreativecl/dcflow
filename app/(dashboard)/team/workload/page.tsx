@@ -32,6 +32,12 @@ export default function WorkloadPage() {
   const [loading, setLoading] = useState(true);
   // Last-resort safety: never stay stuck in loading state
   useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +116,7 @@ export default function WorkloadPage() {
 
     fetchWorkload().finally(() => clearTimeout(timeoutId));
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, []);
+  }, [refreshKey]);
 
   const overloadedCount = workloadData.filter((w) => w.isOverloaded).length;
   const underutilizedCount = workloadData.filter((w) => w.isUnderutilized).length;

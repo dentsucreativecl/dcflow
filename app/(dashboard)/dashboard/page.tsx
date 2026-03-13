@@ -39,6 +39,12 @@ export default function DashboardPage() {
 
   const [clientFilter, setClientFilter] = useState<string[]>([]);
   const [projectFilter, setProjectFilter] = useState<string[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     // Wait for auth to resolve — don't start fetch while authLoading
@@ -116,7 +122,7 @@ export default function DashboardPage() {
 
     fetchData();
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, [user, authLoading]);
+  }, [user, authLoading, refreshKey]);
 
   // Derive unique clients: use all spaces as base, annotate with user task count
   const clients = useMemo(() => {

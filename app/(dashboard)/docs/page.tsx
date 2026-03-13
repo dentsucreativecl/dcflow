@@ -47,6 +47,12 @@ export default function DocsPage() {
   const [filterSpace, setFilterSpace] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,7 +96,7 @@ export default function DocsPage() {
 
     fetchDocs().finally(() => clearTimeout(timeoutId));
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, []);
+  }, [refreshKey]);
 
   const toggleFavorite = async (id: string) => {
     const doc = docs.find((d) => d.id === id);

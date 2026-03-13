@@ -276,6 +276,12 @@ export default function ReportsPage() {
     return () => { cancelled = true; clearTimeout(safetyTimer); };
   }, [fetchData]);
 
+  useEffect(() => {
+    const handler = () => { fetchData(); };
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, [fetchData]);
+
   // ─── Period-filtered data ─────────────────────────────────────────
   const { start: periodStart, end: periodEnd } = useMemo(() => getPeriodRange(period, new Date()), [period]);
 

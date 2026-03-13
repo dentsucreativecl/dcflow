@@ -39,6 +39,21 @@ export const createClient = (): SupabaseClient => {
         }
     })
 
+    // Proactively refresh the token when it's about to expire (<60s remaining)
+    if (typeof window !== 'undefined') {
+        setInterval(async () => {
+            try {
+                const { data: { session } } = await client.auth.getSession()
+                if (session?.expires_at) {
+                    const secsLeft = session.expires_at - Math.floor(Date.now() / 1000)
+                    if (secsLeft > 0 && secsLeft < 60) {
+                        await client.auth.refreshSession()
+                    }
+                }
+            } catch { /* silent — autoRefreshToken handles the hard cases */ }
+        }, 30000)
+    }
+
     if (typeof window !== 'undefined') {
         window.__supabase = client
     }

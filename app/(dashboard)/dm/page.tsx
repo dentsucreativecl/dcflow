@@ -22,6 +22,12 @@ export default function DmIndexPage() {
   // Last-resort safety: never stay stuck in loading state
   useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [search, setSearch] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -45,7 +51,7 @@ export default function DmIndexPage() {
     }
     fetchContacts().finally(() => clearTimeout(timeoutId));
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, [user, authLoading]);
+  }, [user, authLoading, refreshKey]);
 
   const filtered = search.trim()
     ? contacts.filter(

@@ -28,6 +28,12 @@ export default function TeamPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const canViewMembers = isSuperAdmin || isAdmin || isPM;
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +106,7 @@ export default function TeamPage() {
 
     fetchTeam();
     return () => { cancelled = true; clearTimeout(timeoutId); };
-  }, []);
+  }, [refreshKey]);
 
   // Get unique departments and statuses
   const departments = [...new Set(teamMembers.map((m) => m.department))];

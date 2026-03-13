@@ -5,6 +5,7 @@ import { KeyboardShortcuts } from "@/components/features/keyboard-shortcuts";
 import { OnboardingChecklist } from "@/components/features/onboarding-checklist";
 import { Modals } from "@/components/modals";
 import { GlobalSearch } from "@/components/features/global-search";
+import { VisibilityRefetchProvider } from "@/components/layout/visibility-refetch-provider";
 
 
 export default function DashboardLayout({
@@ -13,7 +14,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <VisibilityRefetchProvider>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
         <TopHeader />
         <div className="flex flex-1 overflow-hidden">
@@ -29,7 +30,6 @@ export default function DashboardLayout({
       <KeyboardShortcuts />
       <OnboardingChecklist />
       <Modals />
-
-    </>
+    </VisibilityRefetchProvider>
   );
 }

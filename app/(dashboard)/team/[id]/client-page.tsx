@@ -144,6 +144,13 @@ export default function TeamMemberDetailPage() {
     }
   };
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1);
+    window.addEventListener('dcflow:refresh', handler);
+    return () => window.removeEventListener('dcflow:refresh', handler);
+  }, []);
+
   useEffect(() => {
     async function fetchData() {
       if (!id) return;
@@ -232,7 +239,7 @@ export default function TeamMemberDetailPage() {
 
     fetchData();
     return () => { /* cleanup handled by last-resort timer */ };
-  }, [id]);
+  }, [id, refreshKey]);
 
   if (loading) {
     return (
