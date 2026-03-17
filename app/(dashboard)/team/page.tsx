@@ -225,11 +225,11 @@ export default function TeamPage() {
       {viewMode === "grid" ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredMembers.map((member) => (
-            <TeamCard key={member.id} member={member} onViewMember={canViewMembers ? setSelectedMemberId : undefined} />
+            <TeamCard key={member.id} member={member} onViewMember={canViewMembers ? setSelectedMemberId : undefined} isSuperAdmin={isSuperAdmin} onDeactivate={(m) => openModal("deactivate-member", { userId: m.id, userName: m.name })} />
           ))}
         </div>
       ) : (
-        <TeamTable members={filteredMembers} onViewMember={canViewMembers ? setSelectedMemberId : undefined} canViewMembers={canViewMembers} />
+        <TeamTable members={filteredMembers} onViewMember={canViewMembers ? setSelectedMemberId : undefined} canViewMembers={canViewMembers} isSuperAdmin={isSuperAdmin} onDeactivate={(m) => openModal("deactivate-member", { userId: m.id, userName: m.name })} />
       )}
 
       {/* Empty State */}

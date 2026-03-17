@@ -68,3 +68,72 @@ export async function PATCH(
 
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
 }
+
+// Soft-delete: deactivate user and optionally reassign their tasks
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { userId: string } }
+) {
+    const { userId } = params;
+
+    const supabase = createServerClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const adminClient = createServiceClient();
+    const { data: callerProfile } = await adminClient.from('User').select('role').eq('id', authUser.id).single();
+    if (!callerProfile || callerProfile.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Solo el Super Admin puede desactivar miembros' }, { status: 403 });
+    }
+
+    // Cannot deactivate yourself
+    if (userId === authUser.id) {
+        return NextResponse.json({ error: 'No puedes desactivarte a ti mismo' }, { status: 400 });
+    }
+
+    // Verify user exists
+    const { data: targetUser } = await adminClient.from('User').select('id, name, isActive').eq('id', userId).single();
+    if (!targetUser) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+
+    // Parse optional reassignTo from request body
+    let reassignTo: string | null = null;
+    try {
+        const body = await request.json();
+        reassignTo = body.reassignTo || null;
+    } catch { /* no body is OK */ }
+
+    // Reassign active tasks if a target user is provided
+    if (reassignTo) {
+        const { data: assignments } = await adminClient
+            .from('TaskAssignment')
+            .select('id, taskId')
+            .eq('userId', userId);
+
+        if (assignments && assignments.length > 0) {
+            for (const a of assignments) {
+                // Check if target already assigned to this task
+                const { data: existing } = await adminClient
+                    .from('TaskAssignment')
+                    .select('id')
+                    .eq('taskId', a.taskId)
+                    .eq('userId', reassignTo)
+                    .maybeSingle();
+
+                if (!existing) {
+                    await adminClient.from('TaskAssignment').insert({
+                        taskId: a.taskId,
+                        userId: reassignTo,
+                    });
+                }
+            }
+            // Remove original assignments
+            await adminClient.from('TaskAssignment').delete().eq('userId', userId);
+        }
+    }
+
+    // Soft-delete: set isActive = false
+    const { error } = await adminClient.from('User').update({ isActive: false }).eq('id', userId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ success: true, reassigned: !!reassignTo });
+}

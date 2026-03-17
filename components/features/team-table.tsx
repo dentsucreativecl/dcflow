@@ -18,9 +18,11 @@ interface TeamTableProps {
     members: TeamMember[];
     onViewMember?: (id: string) => void;
     canViewMembers?: boolean;
+    isSuperAdmin?: boolean;
+    onDeactivate?: (member: TeamMember) => void;
 }
 
-export function TeamTable({ members, onViewMember, canViewMembers }: TeamTableProps) {
+export function TeamTable({ members, onViewMember, canViewMembers, isSuperAdmin, onDeactivate }: TeamTableProps) {
     const getUtilization = (member: TeamMember) => {
         return Math.round((member.hoursThisWeek / member.capacity) * 100);
     };
@@ -109,6 +111,11 @@ export function TeamTable({ members, onViewMember, canViewMembers }: TeamTablePr
                                         {canViewMembers && (
                                             <Button variant="outline" size="sm" onClick={() => onViewMember?.(member.id)}>
                                                 Ver
+                                            </Button>
+                                        )}
+                                        {isSuperAdmin && (
+                                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDeactivate?.(member)}>
+                                                Desactivar
                                             </Button>
                                         )}
                                     </div>

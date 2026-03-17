@@ -3,8 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Hash, MessageSquare } from "lucide-react";
+import { Hash, MessageSquare, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { useAppStore } from "@/lib/store";
+import { useToast } from "@/components/ui/toast";
 
 interface ChannelInfo {
   id: string;
@@ -15,6 +19,9 @@ interface ChannelInfo {
 }
 
 export default function ChannelsPage() {
+  const { isSuperAdmin } = useAuth();
+  const { openModal } = useAppStore();
+  const { addToast } = useToast();
   const [channels, setChannels] = useState<ChannelInfo[]>([]);
   const [loading, setLoading] = useState(true);
   // Last-resort safety: never stay stuck in loading state
@@ -64,6 +71,27 @@ export default function ChannelsPage() {
     );
   }
 
+  const handleDeleteChannel = (ch: ChannelInfo) => {
+    openModal("confirm-delete", {
+      title: `¿Eliminar canal "#${ch.name.toLowerCase()}"?`,
+      message: "Se eliminarán permanentemente todos los mensajes y miembros del canal. Esta acción no se puede deshacer.",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/channels/${ch.id}`, { method: "DELETE" });
+          if (res.ok) {
+            addToast({ title: "Canal eliminado", type: "success" });
+            window.dispatchEvent(new Event("dcflow:refresh"));
+          } else {
+            const data = await res.json().catch(() => ({}));
+            addToast({ title: data.error || "Error al eliminar", type: "error" });
+          }
+        } catch {
+          addToast({ title: "Error de conexión", type: "error" });
+        }
+      },
+    });
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
       <div>
@@ -72,21 +100,33 @@ export default function ChannelsPage() {
       </div>
       <div className="space-y-2">
         {channels.map((ch) => (
-          <Link key={ch.id} href={`/channels/${ch.slug}`}>
-            <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Hash className="h-5 w-5 text-green-600" />
+          <div key={ch.id} className="flex items-center gap-2">
+            <Link href={`/channels/${ch.slug}`} className="flex-1">
+              <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <Hash className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium"># {ch.name.toLowerCase()}</p>
+                    {ch.description && (
+                      <p className="text-sm text-muted-foreground truncate">{ch.description}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium"># {ch.name.toLowerCase()}</p>
-                  {ch.description && (
-                    <p className="text-sm text-muted-foreground truncate">{ch.description}</p>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+            {isSuperAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                onClick={() => handleDeleteChannel(ch)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         ))}
       </div>
     </div>

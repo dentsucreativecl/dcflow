@@ -181,7 +181,7 @@ const priorityConfig = {
 
 export function TaskDetailModalV2() {
     const { activeModal, modalData, closeModal, openModal } = useAppStore();
-    const { user } = useAuth();
+    const { user, isSuperAdmin } = useAuth();
     const { addToast } = useToast();
 
     const isOpen = activeModal === "task-detail-v2";
@@ -741,6 +741,29 @@ export function TaskDetailModalV2() {
         setTaskCustomFields([]);
         setTaskRelations([]);
         setActiveTab("details");
+    };
+
+    const handleDeleteTask = () => {
+        if (!task) return;
+        openModal("confirm-delete", {
+            title: `¿Eliminar "${task.title}"?`,
+            message: "Se eliminarán permanentemente la tarea, sus asignaciones, comentarios y archivos. Esta acción no se puede deshacer.",
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+                    if (res.ok) {
+                        addToast({ title: "Tarea eliminada", type: "success" });
+                        window.dispatchEvent(new Event("dcflow:refresh"));
+                        handleClose();
+                    } else {
+                        const data = await res.json().catch(() => ({}));
+                        addToast({ title: data.error || "Error al eliminar", type: "error" });
+                    }
+                } catch {
+                    addToast({ title: "Error de conexión", type: "error" });
+                }
+            },
+        });
     };
 
     const handleSaveTitle = async () => {
@@ -1393,6 +1416,11 @@ export function TaskDetailModalV2() {
                                         }}>
                                             <Share2 className="h-3.5 w-3.5" /> Compartir
                                         </Button>
+                                        {isSuperAdmin && (
+                                            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={handleDeleteTask}>
+                                                <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                                            </Button>
+                                        )}
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleClose}>
                                             <X className="h-4 w-4" />
                                         </Button>

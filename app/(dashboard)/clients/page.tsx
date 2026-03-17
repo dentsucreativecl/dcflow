@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
-import { Plus, Search, LayoutGrid, List, Loader2, Building2, Mail, FolderKanban, Edit3 } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Loader2, Building2, Mail, FolderKanban, Edit3, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FilterDropdown } from "@/components/features/filter-dropdown";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -40,6 +41,7 @@ export default function ClientsPage() {
   const { openModal } = useAppStore();
   const { isAdmin, isSuperAdmin } = useAuth();
   const router = useRouter();
+  const { addToast } = useToast();
   const canEdit = isAdmin || isSuperAdmin;
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +136,27 @@ export default function ClientsPage() {
       window.removeEventListener("dcflow:refresh", handler);
     };
   }, [fetchClients]);
+
+  const handleDeleteClient = (client: ClientRow) => {
+    openModal("confirm-delete", {
+      title: `¿Eliminar "${client.name}"?`,
+      message: `Se eliminarán permanentemente ${client.listsCount} proyecto${client.listsCount !== 1 ? "s" : ""}, todas sus tareas, archivos y datos asociados. Esta acción no se puede deshacer.`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/spaces/${client.id}`, { method: "DELETE" });
+          if (res.ok) {
+            addToast({ title: "Cliente eliminado", type: "success" });
+            window.dispatchEvent(new Event("dcflow:refresh"));
+          } else {
+            const data = await res.json().catch(() => ({}));
+            addToast({ title: data.error || "Error al eliminar", type: "error" });
+          }
+        } catch {
+          addToast({ title: "Error de conexión", type: "error" });
+        }
+      },
+    });
+  };
 
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {
@@ -237,6 +260,16 @@ export default function ClientsPage() {
                         Editar
                       </Button>
                     )}
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Badge variant="secondary" className="text-[10px]">
                       {client.listsCount} proyecto{client.listsCount !== 1 ? "s" : ""}
                     </Badge>
@@ -260,19 +293,20 @@ export default function ClientsPage() {
           </div>
         ) : (
           <div className="rounded-xl border bg-card overflow-hidden">
-            <div className={`grid ${canEdit ? "grid-cols-[2fr_1fr_1fr_100px_90px]" : "grid-cols-[2fr_1fr_1fr_100px]"} gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider`}>
+            <div className={`grid ${isSuperAdmin ? "grid-cols-[2fr_1fr_1fr_100px_90px_40px]" : canEdit ? "grid-cols-[2fr_1fr_1fr_100px_90px]" : "grid-cols-[2fr_1fr_1fr_100px]"} gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider`}>
               <span>Cliente</span>
               <span>Contacto</span>
               <span>Proyectos</span>
               <span>Equipo</span>
               {canEdit && <span></span>}
+              {isSuperAdmin && <span></span>}
             </div>
             <ScrollArea className="h-[calc(100vh-300px)]">
               <div className="divide-y divide-border/50">
                 {filteredClients.map((client) => (
                   <div
                     key={client.id}
-                    className={`grid ${canEdit ? "grid-cols-[2fr_1fr_1fr_100px_90px]" : "grid-cols-[2fr_1fr_1fr_100px]"} gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer`}
+                    className={`grid ${isSuperAdmin ? "grid-cols-[2fr_1fr_1fr_100px_90px_40px]" : canEdit ? "grid-cols-[2fr_1fr_1fr_100px_90px]" : "grid-cols-[2fr_1fr_1fr_100px]"} gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer`}
                     onClick={() => router.push(`/clients/${client.id}`)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -306,6 +340,16 @@ export default function ClientsPage() {
                       >
                         <Edit3 className="h-3 w-3 mr-1" />
                         Editar
+                      </Button>
+                    )}
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>

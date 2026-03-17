@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText, FolderOpen, Search, Plus, Star, Clock,
-  File, Grid, List, Loader2
+  File, Grid, List, Loader2, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/components/ui/toast";
 
 interface Doc {
   id: string;
@@ -39,6 +41,8 @@ function timeAgo(dateStr: string): string {
 export default function DocsPage() {
   const router = useRouter();
   const { openModal } = useAppStore();
+  const { isSuperAdmin } = useAuth();
+  const { addToast } = useToast();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   // Last-resort safety: never stay stuck in loading state
@@ -113,6 +117,27 @@ export default function DocsPage() {
         d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
       )
     );
+  };
+
+  const handleDeleteDoc = (doc: Doc) => {
+    openModal("confirm-delete", {
+      title: `¿Eliminar "${doc.title}"?`,
+      message: "El documento será eliminado permanentemente. Esta acción no se puede deshacer.",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" });
+          if (res.ok) {
+            addToast({ title: "Documento eliminado", type: "success" });
+            window.dispatchEvent(new Event("dcflow:refresh"));
+          } else {
+            const data = await res.json().catch(() => ({}));
+            addToast({ title: data.error || "Error al eliminar", type: "error" });
+          }
+        } catch {
+          addToast({ title: "Error de conexión", type: "error" });
+        }
+      },
+    });
   };
 
   const spaces = Array.from(new Set(docs.map((d) => d.spaceName)));
@@ -227,19 +252,29 @@ export default function DocsPage() {
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-lg">
                   {doc.emoji || "📄"}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(doc.id);
-                  }}
-                  className="p-1 rounded hover:bg-muted"
-                >
-                  <Star
-                    className="h-4 w-4"
-                    fill={doc.isFavorite ? "#f59e0b" : "none"}
-                    stroke={doc.isFavorite ? "#f59e0b" : "currentColor"}
-                  />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(doc.id);
+                    }}
+                    className="p-1 rounded hover:bg-muted"
+                  >
+                    <Star
+                      className="h-4 w-4"
+                      fill={doc.isFavorite ? "#f59e0b" : "none"}
+                      stroke={doc.isFavorite ? "#f59e0b" : "currentColor"}
+                    />
+                  </button>
+                  {isSuperAdmin && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc); }}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               <h3 className="text-sm font-semibold text-foreground mb-1 truncate">
                 {doc.title}
@@ -268,17 +303,18 @@ export default function DocsPage() {
         </div>
       ) : (
         <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="grid grid-cols-[2fr_1fr_1fr_120px] gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <div className={`grid ${isSuperAdmin ? "grid-cols-[2fr_1fr_1fr_120px_40px]" : "grid-cols-[2fr_1fr_1fr_120px]"} gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider`}>
             <span>Nombre</span>
             <span>Espacio</span>
             <span>Autor</span>
             <span>Modificado</span>
+            {isSuperAdmin && <span></span>}
           </div>
           <div className="divide-y divide-border/50">
             {filtered.map((doc) => (
               <div
                 key={doc.id}
-                className="grid grid-cols-[2fr_1fr_1fr_120px] gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer group"
+                className={`grid ${isSuperAdmin ? "grid-cols-[2fr_1fr_1fr_120px_40px]" : "grid-cols-[2fr_1fr_1fr_120px]"} gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer group`}
                 onClick={() => router.push(`/docs/${doc.id}`)}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -302,6 +338,16 @@ export default function DocsPage() {
                 <span className="text-sm text-muted-foreground">
                   {timeAgo(doc.updatedAt)}
                 </span>
+                {isSuperAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc); }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

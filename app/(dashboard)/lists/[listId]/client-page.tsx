@@ -204,30 +204,28 @@ export default function ListPage() {
         });
     };
 
-    const handleBulkDelete = async () => {
+    const handleBulkDelete = () => {
         if (selectedTasks.size === 0) return;
-
-        const confirmed = confirm(
-            `¿Estás seguro de eliminar ${selectedTasks.size} tarea${selectedTasks.size > 1 ? "s" : ""}?`
-        );
-        if (!confirmed) return;
-
-        const supabase = createClient();
-
-        try {
-            const { error } = await supabase
-                .from("Task")
-                .delete()
-                .in("id", Array.from(selectedTasks));
-
-            if (error) throw error;
-
-            await fetchData();
-            setSelectedTasks(new Set());
-        } catch (error) {
-            console.error("Error deleting tasks:", error);
-            alert("Error al eliminar tareas");
-        }
+        openModal("confirm-delete", {
+            title: `¿Eliminar ${selectedTasks.size} tarea${selectedTasks.size > 1 ? "s" : ""}?`,
+            message: "Se eliminarán permanentemente las tareas seleccionadas, sus asignaciones, comentarios y archivos. Esta acción no se puede deshacer.",
+            onConfirm: async () => {
+                try {
+                    const idsArr = Array.from(selectedTasks);
+                    const res = await fetch(`/api/tasks/${idsArr[0]}?ids=${idsArr.join(",")}`, { method: "DELETE" });
+                    if (res.ok) {
+                        addToast({ title: "Tareas eliminadas", type: "success" });
+                        await fetchData();
+                        setSelectedTasks(new Set());
+                    } else {
+                        const data = await res.json().catch(() => ({}));
+                        addToast({ title: data.error || "Error al eliminar", type: "error" });
+                    }
+                } catch {
+                    addToast({ title: "Error de conexión", type: "error" });
+                }
+            },
+        });
     };
 
     const handleDeleteProject = () => {

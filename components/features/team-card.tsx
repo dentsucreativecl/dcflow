@@ -34,9 +34,11 @@ function getAvatarColor(name: string) {
 interface TeamCardProps {
   member: TeamMember;
   onViewMember?: (id: string) => void;
+  isSuperAdmin?: boolean;
+  onDeactivate?: (member: TeamMember) => void;
 }
 
-export function TeamCard({ member, onViewMember }: TeamCardProps) {
+export function TeamCard({ member, onViewMember, isSuperAdmin, onDeactivate }: TeamCardProps) {
   const utilization = Math.round((member.hoursThisWeek / member.capacity) * 100);
 
   return (
@@ -69,6 +71,11 @@ export function TeamCard({ member, onViewMember }: TeamCardProps) {
             <DropdownMenuItem onClick={() => onViewMember?.(member.id)}>Ver Perfil</DropdownMenuItem>
             <DropdownMenuItem>Asignar Tarea</DropdownMenuItem>
             <DropdownMenuItem>Ver Carga</DropdownMenuItem>
+            {isSuperAdmin && (
+              <DropdownMenuItem className="text-destructive" onClick={() => onDeactivate?.(member)}>
+                Desactivar
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

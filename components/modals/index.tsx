@@ -17,6 +17,7 @@ import { BulkAssignModal } from "./bulk-assign-modal";
 import { NewChannelModal } from "./new-channel-modal";
 import { EditClientModal } from "./edit-client-modal";
 import { NewFolderModal } from "./new-folder-modal";
+import { DeactivateMemberModal } from "./deactivate-member-modal";
 import { useAppStore } from "@/lib/store";
 
 export function ModalProvider() {
@@ -40,6 +41,7 @@ export function ModalProvider() {
       <NewChannelModal />
       {activeModal === "edit-client" && <EditClientModal />}
       {activeModal === "new-folder" && <NewFolderModal />}
+      {activeModal === "deactivate-member" && <DeactivateMemberModal />}
     </>
   );
 }
