@@ -166,16 +166,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setUser(null);
                     return;
                 }
+
+                // TOKEN_REFRESHED: the user profile hasn't changed — skip the
+                // expensive fetchProfile() call that can fail transiently and
+                // destabilize user state. Only re-fetch on actual sign-in.
+                if (event === 'TOKEN_REFRESHED') {
+                    return;
+                }
+
+                // SIGNED_IN or INITIAL_SESSION: fetch the full profile
                 const profile = await fetchProfile(session.user.id);
-                // Only update user if profile fetch succeeded.
-                // On TOKEN_REFRESHED, a transient fetchProfile error (network hiccup)
-                // must NOT set user=null — that causes every page's useEffect([user])
-                // to fire with null and get stuck with loading=true permanently.
                 if (profile !== null) {
                     setUser(profile);
                 }
-                // If profile is null (fetch error), keep the existing user state so
-                // pages stay functional. The user will be signed out on next hard refresh.
             }
         );
 

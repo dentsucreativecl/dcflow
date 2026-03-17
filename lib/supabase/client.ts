@@ -9,6 +9,13 @@ declare global {
     interface Window { __supabase?: SupabaseClient }
 }
 
+// Serializing mutex for Supabase auth operations.
+// Supabase uses single-use refresh tokens — concurrent refresh calls
+// (e.g. autoRefreshToken timer + manual refreshSession) race and the
+// second one gets a 400 because the token was already consumed.
+// This replaces the previous no-op lock that allowed that race.
+let lockQueue: Promise<unknown> = Promise.resolve()
+
 export const createClient = (): SupabaseClient => {
     if (typeof window !== 'undefined' && window.__supabase) {
         return window.__supabase
@@ -20,10 +27,22 @@ export const createClient = (): SupabaseClient => {
             auth: {
                 autoRefreshToken: true,
                 persistSession: true,
-                // Replace navigator.locks with a no-op to avoid lock timeout errors
-                // Safe for single-tab SPA usage
+                // Serializing lock: only one auth operation at a time.
+                // Prevents concurrent refresh calls from invalidating each
+                // other's single-use refresh tokens (the root cause of 400s
+                // after background-tab inactivity).
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                lock: async (_name: string, _timeout: number, fn: () => Promise<any>) => fn(),
+                lock: async (_name: string, _timeout: number, fn: () => Promise<any>) => {
+                    const prev = lockQueue
+                    let releaseLock: () => void
+                    lockQueue = new Promise<void>(r => { releaseLock = r })
+                    await prev
+                    try {
+                        return await fn()
+                    } finally {
+                        releaseLock!()
+                    }
+                },
             },
             realtime: {
                 params: { eventsPerSecond: 10 },
@@ -31,16 +50,14 @@ export const createClient = (): SupabaseClient => {
             },
         }
     )
-    // Browser-only: auth listeners and proactive refresh
+    // Browser-only: when the JWT is refreshed, pass the new token to Realtime
+    // so WebSocket subscriptions don't keep using the expired one
     if (typeof window !== 'undefined') {
-        // When the JWT is refreshed, pass the new token to Realtime
-        // so WebSocket subscriptions don't keep using the expired one
         client.auth.onAuthStateChange((event, session) => {
             if (event === 'TOKEN_REFRESHED' && session) {
                 client.realtime.setAuth(session.access_token)
             }
         })
-
     }
 
     if (typeof window !== 'undefined') {
