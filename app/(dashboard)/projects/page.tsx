@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   List as ListIcon, Plus, Search, Loader2, FolderOpen,
   Calendar, CheckCircle2, Circle, ArrowUpDown, ArrowUp, ArrowDown,
-  User as UserIcon, Users, LayoutGrid,
+  User as UserIcon, Users, LayoutGrid, Trash2, MoreHorizontal,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/components/ui/toast";
 import { KanbanBoard, deriveStatus, type KanbanProjectRow } from "@/components/features/kanban-board";
 
 interface ProjectRow {
@@ -54,7 +55,9 @@ function fmtDate(dateStr: string | null): string {
 
 export default function ProjectsPage() {
   const { openModal } = useAppStore();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
+  const { addToast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
   // Last-resort: never stay stuck in loading state (catches any edge case missed above)
@@ -285,6 +288,30 @@ export default function ProjectsPage() {
     }
   };
 
+  const handleDeleteProject = (project: ProjectRow) => {
+    openModal("confirm-delete", {
+      title: `¿Eliminar "${project.name}"?`,
+      message: `Se eliminarán permanentemente ${project.totalTasks} tarea${project.totalTasks !== 1 ? "s" : ""}, asignaciones, comentarios y archivos asociados. Esta acción no se puede deshacer.`,
+      onConfirm: async () => {
+        setDeletingId(project.id);
+        try {
+          const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+          if (res.ok) {
+            addToast({ title: "Proyecto eliminado", type: "success" });
+            window.dispatchEvent(new Event("dcflow:refresh"));
+          } else {
+            const data = await res.json().catch(() => ({}));
+            addToast({ title: data.error || "Error al eliminar", type: "error" });
+          }
+        } catch {
+          addToast({ title: "Error de conexión", type: "error" });
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
+  };
+
   const sortLabels: Record<SortField, string> = {
     name: "Nombre",
     dueDate: "Fecha",
@@ -426,19 +453,20 @@ export default function ProjectsPage() {
         ) : (
           <>
             <div className="rounded-xl border bg-card overflow-hidden">
-              <div className="grid grid-cols-[2fr_1fr_120px_120px_100px] gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <div className={`grid ${isSuperAdmin ? "grid-cols-[2fr_1fr_120px_120px_100px_50px]" : "grid-cols-[2fr_1fr_120px_120px_100px]"} gap-4 px-5 py-3 bg-muted/50 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider`}>
                 <span>Proyecto</span>
                 <span>Espacio</span>
                 <span>Progreso</span>
                 <span>Fecha Límite</span>
                 <span>Tareas</span>
+                {isSuperAdmin && <span></span>}
               </div>
               <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="divide-y divide-border/50">
                   {filteredProjects.map((project) => (
                     <div
                       key={project.id}
-                      className="grid grid-cols-[2fr_1fr_120px_120px_100px] gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer"
+                      className={`grid ${isSuperAdmin ? "grid-cols-[2fr_1fr_120px_120px_100px_50px]" : "grid-cols-[2fr_1fr_120px_120px_100px]"} gap-4 px-5 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer`}
                       onClick={() => {
                         window.location.href = `/lists/${project.id}`;
                       }}
@@ -499,6 +527,17 @@ export default function ProjectsPage() {
                         <Circle className="h-3 w-3" />
                         <span>{project.totalTasks}</span>
                       </div>
+                      {isSuperAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          disabled={deletingId === project.id}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import {
   formatCurrency,
@@ -88,6 +89,7 @@ export function ProjectDetailModal() {
     openModal,
   } = useAppStore();
   const { addToast } = useToast();
+  const { isSuperAdmin } = useAuth();
 
   const isOpen = activeModal === "project-detail";
   const projectId = modalData?.projectId;
@@ -172,17 +174,28 @@ export function ProjectDetailModal() {
     setTeam([]);
   };
 
-  const handleDelete = async () => {
-    if (!projectId) return;
-    const supabase = createClient();
-    const { error } = await supabase.from("List").delete().eq("id", projectId);
-    if (!error) {
-      addToast({ title: "Proyecto eliminado", type: "success" });
-      window.dispatchEvent(new CustomEvent("dcflow:refresh"));
-      handleClose();
-    } else {
-      addToast({ title: "Error al eliminar", type: "error" });
-    }
+  const handleDelete = () => {
+    if (!projectId || !project) return;
+    const taskCount = tasks.length;
+    handleClose();
+    openModal("confirm-delete", {
+      title: `¿Eliminar "${project.name}"?`,
+      message: `Se eliminarán permanentemente ${taskCount} tarea${taskCount !== 1 ? "s" : ""}, asignaciones, comentarios y archivos asociados. Esta acción no se puede deshacer.`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+          if (res.ok) {
+            addToast({ title: "Proyecto eliminado", type: "success" });
+            window.dispatchEvent(new Event("dcflow:refresh"));
+          } else {
+            const data = await res.json().catch(() => ({}));
+            addToast({ title: data.error || "Error al eliminar", type: "error" });
+          }
+        } catch {
+          addToast({ title: "Error de conexión", type: "error" });
+        }
+      },
+    });
   };
 
   const handleOpenTask = (taskId: string) => {
@@ -256,14 +269,18 @@ export function ProjectDetailModal() {
                   <Edit className="h-4 w-4 mr-2" />
                   Editar Proyecto
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={handleDelete}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar Proyecto
-                </DropdownMenuItem>
+                {isSuperAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar Proyecto
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
