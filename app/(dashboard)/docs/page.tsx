@@ -45,8 +45,6 @@ export default function DocsPage() {
   const { addToast } = useToast();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSpace, setFilterSpace] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");

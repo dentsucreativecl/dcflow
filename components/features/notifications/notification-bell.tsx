@@ -46,11 +46,12 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
         fetchNotifications();
 
-        // Realtime subscription with graceful error handling
+        // Realtime subscription with reconnection on error
         const supabase = createClient();
+        let retryTimer: ReturnType<typeof setTimeout>;
 
-        const channel = supabase
-            .channel(`user-${userId}-notifications`)
+        const subscribe = () => supabase
+            .channel(`user-${userId}-notifications-${Date.now()}`)
             .on(
                 "postgres_changes",
                 {
@@ -79,15 +80,25 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             .subscribe((status, err) => {
                 if (status === 'CHANNEL_ERROR') {
                     console.warn('Realtime error:', err?.message || JSON.stringify(err) || 'unknown error');
+                    supabase.removeChannel(ch);
+                    retryTimer = setTimeout(() => { ch = subscribe(); }, 3000);
                 }
             });
+
+        let ch = subscribe();
 
         // Fallback polling every 30s in case Realtime is down
         const interval = setInterval(fetchNotifications, 30000);
 
+        // Re-fetch on visibility refresh (tab coming back from inactivity)
+        const refreshHandler = () => fetchNotifications();
+        window.addEventListener("dcflow:refresh", refreshHandler);
+
         return () => {
-            supabase.removeChannel(channel);
+            clearTimeout(retryTimer);
+            supabase.removeChannel(ch);
             clearInterval(interval);
+            window.removeEventListener("dcflow:refresh", refreshHandler);
         };
     }, [userId]);
 

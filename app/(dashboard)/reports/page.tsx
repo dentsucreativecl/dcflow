@@ -127,8 +127,6 @@ export default function ReportsPage() {
 
   // Raw data
   const [loading, setLoading] = useState(true);
-  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [timeEntries, setTimeEntries] = useState<TimeEntryRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -257,8 +255,8 @@ export default function ReportsPage() {
       };
     });
     setTimeEntriesEnriched(enriched);
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.warn('[reports] fetch error:', err);
     } finally {
       setLoading(false);
     }

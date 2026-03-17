@@ -57,8 +57,6 @@ const getTypeLabel = (type: string) => {
 export default function InboxPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const router = useRouter();
   const { openModal } = useAppStore();

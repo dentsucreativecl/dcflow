@@ -37,8 +37,6 @@ export default function CalendarPage() {
   const { openModal } = useAppStore();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {

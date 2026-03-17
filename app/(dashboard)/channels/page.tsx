@@ -24,8 +24,6 @@ export default function ChannelsPage() {
   const { addToast } = useToast();
   const [channels, setChannels] = useState<ChannelInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
     const handler = () => setRefreshKey(k => k + 1);

@@ -19,8 +19,6 @@ export default function DmIndexPage() {
   const { user, loading: authLoading } = useAuth();
   const [contacts, setContacts] = useState<UserContact[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {

@@ -472,8 +472,6 @@ export default function ListPage() {
         }
     }, [listId]);
 
-    // Last-resort safety: never stay stuck in loading state
-    useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
     useEffect(() => {
         if (authLoading) return;
@@ -507,8 +505,10 @@ export default function ListPage() {
 
         const supabase = createClient();
 
-        const taskChannel = supabase
-            .channel(`list-${listId}-tasks`)
+        let retryTimer: ReturnType<typeof setTimeout>;
+
+        const subscribe = () => supabase
+            .channel(`list-${listId}-tasks-${Date.now()}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'Task', filter: `listId=eq.${listId}` },
@@ -522,10 +522,17 @@ export default function ListPage() {
             .subscribe((status, err) => {
                 if (status === 'CHANNEL_ERROR') {
                     console.warn('Realtime error:', err?.message || JSON.stringify(err) || 'unknown error');
+                    supabase.removeChannel(ch);
+                    retryTimer = setTimeout(() => { ch = subscribe(); }, 3000);
                 }
             });
 
-        return () => { supabase.removeChannel(taskChannel); };
+        let ch = subscribe();
+
+        return () => {
+            clearTimeout(retryTimer);
+            supabase.removeChannel(ch);
+        };
     }, [listId, fetchData]);
 
     const toggleTaskSelection = (taskId: string) => {

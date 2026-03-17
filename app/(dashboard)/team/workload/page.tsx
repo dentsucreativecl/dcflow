@@ -30,8 +30,6 @@ const WEEKLY_CAPACITY = 40; // Default hours per week
 export default function WorkloadPage() {
   const [workloadData, setWorkloadData] = useState<MemberWorkload[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
     const handler = () => setRefreshKey(k => k + 1);

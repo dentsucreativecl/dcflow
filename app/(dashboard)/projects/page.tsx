@@ -60,8 +60,6 @@ export default function ProjectsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [spaceFilter, setSpaceFilter] = useState<string[]>([]);
   const [personFilter, setPersonFilter] = useState<string[]>([]);
@@ -206,8 +204,8 @@ export default function ProjectsPage() {
         }
         setTeamListMap(tMap);
       }
-      } catch {
-        // silently fail
+      } catch (err) {
+        console.warn('[projects] fetch error:', err);
       } finally {
         setLoading(false);
       }

@@ -80,8 +80,6 @@ export default function ChannelPage() {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [channel, setChannel] = useState<ChannelData | null>(null);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
 
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
@@ -220,8 +218,10 @@ export default function ChannelPage() {
 
     const supabase = createClient();
 
-    const subscription = supabase
-      .channel("messages-" + channel.id)
+    let retryTimer: ReturnType<typeof setTimeout>;
+
+    const subscribe = () => supabase
+      .channel("messages-" + channel.id + "-" + Date.now())
       .on(
         "postgres_changes",
         {
@@ -267,10 +267,17 @@ export default function ChannelPage() {
       .subscribe((status, err) => {
         if (status === 'CHANNEL_ERROR') {
           console.warn('Realtime error:', err?.message || JSON.stringify(err) || 'unknown error');
+          supabase.removeChannel(sub);
+          retryTimer = setTimeout(() => { sub = subscribe(); }, 3000);
         }
       });
 
-    return () => { supabase.removeChannel(subscription); };
+    let sub = subscribe();
+
+    return () => {
+      clearTimeout(retryTimer);
+      supabase.removeChannel(sub);
+    };
   }, [channel?.id, scrollToBottom]);
 
   const sendMessage = async () => {

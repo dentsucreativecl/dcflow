@@ -45,8 +45,6 @@ export default function ClientsPage() {
   const canEdit = isAdmin || isSuperAdmin;
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -107,8 +105,8 @@ export default function ClientsPage() {
       });
 
       setClients(mapped);
-      } catch {
-        // silently fail
+      } catch (err) {
+        console.warn('[clients] fetch error:', err);
       } finally {
         setLoading(false);
       }

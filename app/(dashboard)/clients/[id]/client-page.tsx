@@ -78,8 +78,6 @@ export default function ClientDetailPage() {
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [accountManager, setAccountManager] = useState<MemberItem | null>(null);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);

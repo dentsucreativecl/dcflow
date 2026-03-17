@@ -29,8 +29,6 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [tasks, setTasks] = useState<TaskRowData[]>([]);
   const [loading, setLoading] = useState(true);
-  // Last-resort: never stay stuck in loading state (catches any edge case missed above)
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [listCount, setListCount] = useState(0);
   const [teamCount, setTeamCount] = useState(0);
   const [allSpaces, setAllSpaces] = useState<Array<{ value: string; label: string; count: number }>>([]);

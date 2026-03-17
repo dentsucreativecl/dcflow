@@ -100,8 +100,8 @@ export function SidebarV2({ className }: SidebarV2Props) {
             if (fetchedSpaces.length > 0) {
                 setExpandedSpaces(prev => prev.size > 0 ? prev : new Set([fetchedSpaces[0].id]));
             }
-        } catch {
-            // silently fail
+        } catch (err) {
+            console.warn('[sidebar] fetch error:', err);
         } finally {
             setLoading(false);
         }
@@ -114,10 +114,15 @@ export function SidebarV2({ className }: SidebarV2Props) {
     }, [fetchSpacesData, sidebarLoaded]);
 
     // Force re-fetch on explicit refresh events (after creating folders/projects)
+    // Also listen to dcflow:refresh so sidebar recovers after tab inactivity
     useEffect(() => {
         const handler = () => { clearSidebarCache(); fetchSpacesData(); };
         window.addEventListener("dcflow:spaces-refresh", handler);
-        return () => window.removeEventListener("dcflow:spaces-refresh", handler);
+        window.addEventListener("dcflow:refresh", handler);
+        return () => {
+            window.removeEventListener("dcflow:spaces-refresh", handler);
+            window.removeEventListener("dcflow:refresh", handler);
+        };
     }, [fetchSpacesData, clearSidebarCache]);
 
     // Fetch channels
@@ -136,7 +141,11 @@ export function SidebarV2({ className }: SidebarV2Props) {
     useEffect(() => {
         const handler = () => { fetchChannels(); };
         window.addEventListener("dcflow:channels-refresh", handler);
-        return () => window.removeEventListener("dcflow:channels-refresh", handler);
+        window.addEventListener("dcflow:refresh", handler);
+        return () => {
+            window.removeEventListener("dcflow:channels-refresh", handler);
+            window.removeEventListener("dcflow:refresh", handler);
+        };
     }, [fetchChannels]);
 
     // Fetch DM contacts

@@ -92,8 +92,6 @@ export default function TeamMemberDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [hoursThisWeek, setHoursThisWeek] = useState(0);
   const [loading, setLoading] = useState(true);
-  // Last-resort safety: never stay stuck in loading state
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 10000); return () => clearTimeout(t); }, []);
   const [error, setError] = useState<string | null>(null);
   const [savingAreas, setSavingAreas] = useState(false);
 
