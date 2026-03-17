@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import {
     BarChart3,
     Zap,
     Lock,
+    Trash2,
 } from "lucide-react";
 import {
     Select,
@@ -162,8 +163,9 @@ export default function ListPage() {
     const rawListId = params.listId as string;
     // Get actual listId from URL path if params return placeholder
     const listId = rawListId === '_' ? (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() || '' : '') : rawListId;
+    const router = useRouter();
     const { openModal } = useAppStore();
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isSuperAdmin } = useAuth();
     const { addToast } = useToast();
 
     const [list, setList] = useState<ListData | null>(null);
@@ -226,6 +228,28 @@ export default function ListPage() {
             console.error("Error deleting tasks:", error);
             alert("Error al eliminar tareas");
         }
+    };
+
+    const handleDeleteProject = () => {
+        if (!list) return;
+        openModal("confirm-delete", {
+            title: `¿Eliminar "${list.name}"?`,
+            message: `Se eliminarán permanentemente ${tasks.length} tarea${tasks.length !== 1 ? "s" : ""}, asignaciones, comentarios y archivos asociados. Esta acción no se puede deshacer.`,
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(`/api/projects/${listId}`, { method: "DELETE" });
+                    if (res.ok) {
+                        addToast({ title: "Proyecto eliminado", type: "success" });
+                        router.push("/projects");
+                    } else {
+                        const data = await res.json().catch(() => ({}));
+                        addToast({ title: data.error || "Error al eliminar", type: "error" });
+                    }
+                } catch {
+                    addToast({ title: "Error de conexión", type: "error" });
+                }
+            },
+        });
     };
 
     const handleReorderTasks = async (reorderedTasks: Task[]) => {
@@ -640,7 +664,27 @@ export default function ListPage() {
                             </>
                         )}
                     </div>
-                    <h1 className="text-2xl font-bold">{list?.name || "Lista"}</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-bold">{list?.name || "Lista"}</h1>
+                        {isSuperAdmin && list && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={handleDeleteProject}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Eliminar Proyecto
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
