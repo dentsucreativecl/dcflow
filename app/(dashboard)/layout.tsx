@@ -2,7 +2,7 @@ import { SidebarV2 } from "@/components/layout/sidebar-v2";
 import { TopHeader } from "@/components/layout/top-header";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { KeyboardShortcuts } from "@/components/features/keyboard-shortcuts";
-import { OnboardingChecklist } from "@/components/features/onboarding-checklist";
+import { OnboardingProvider } from "@/components/features/onboarding/onboarding-provider";
 import { Modals } from "@/components/modals";
 import { GlobalSearch } from "@/components/features/global-search";
 import { VisibilityRefetchProvider } from "@/components/layout/visibility-refetch-provider";
@@ -28,7 +28,7 @@ export default function DashboardLayout({
       {/* GlobalSearch mounted at layout level so ⌘K works on every page */}
       <GlobalSearch triggerless />
       <KeyboardShortcuts />
-      <OnboardingChecklist />
+      <OnboardingProvider />
       <Modals />
     </VisibilityRefetchProvider>
   );

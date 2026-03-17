@@ -174,7 +174,7 @@ export default function TasksPage() {
         showSearch={false}
         actions={
           <div className="flex items-center gap-3">
-            <div className="flex rounded-lg bg-secondary p-1">
+            <div className="flex rounded-lg bg-secondary p-1" data-tour-id="tasks-view-toggle">
               <Button
                 variant="ghost"
                 size="sm"

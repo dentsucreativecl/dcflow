@@ -186,7 +186,7 @@ export default function ClientsPage() {
         description="Gestiona las cuentas de clientes de la agencia"
         showSearch={false}
         actions={
-          <Button className="gap-2" onClick={() => openModal("new-client")}>
+          <Button className="gap-2" onClick={() => openModal("new-client")} data-tour-id="clients-new-btn">
             <Plus className="h-4 w-4" />
             Nuevo Cliente
           </Button>

@@ -156,7 +156,7 @@ export default function TeamPage() {
                 Carga de Trabajo
               </Link>
             </Button>
-            <Button className="gap-2" onClick={() => openModal("new-member")}>
+            <Button className="gap-2" onClick={() => openModal("new-member")} data-tour-id="team-invite-btn">
               <Plus className="h-4 w-4" />
               Añadir Miembro
             </Button>

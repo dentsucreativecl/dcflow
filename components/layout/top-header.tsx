@@ -82,6 +82,7 @@ export function TopHeader({ className }: TopHeaderProps) {
                 {/* Center: Search */}
                 <button
                     onClick={() => openSearch()}
+                    data-tour-id="header-search"
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/50 text-sm text-muted-foreground hover:bg-muted transition-colors w-64 max-w-md"
                 >
                     <Search className="h-4 w-4" />
@@ -92,7 +93,7 @@ export function TopHeader({ className }: TopHeaderProps) {
                 </button>
 
                 {/* Right: Inbox, Notifications, Avatar */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" data-tour-id="header-timer">
                     {/* Inbox */}
                     <Link href="/inbox">
                         <Button

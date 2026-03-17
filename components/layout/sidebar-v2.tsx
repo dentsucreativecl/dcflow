@@ -57,11 +57,11 @@ interface SidebarV2Props {
 }
 
 const navItems = [
-    { label: "Inicio", icon: Home, href: "/dashboard" },
-    { label: "Mis Tareas", icon: CheckSquare, href: "/my-tasks" },
-    { label: "Proyectos", icon: Briefcase, href: "/projects" },
-    { label: "Canales", icon: Hash, href: "/channels" },
-    { label: "Equipo", icon: Users, href: "/team" },
+    { label: "Inicio", icon: Home, href: "/dashboard", tourId: "sidebar-home" },
+    { label: "Mis Tareas", icon: CheckSquare, href: "/my-tasks", tourId: "sidebar-my-tasks" },
+    { label: "Proyectos", icon: Briefcase, href: "/projects", tourId: "sidebar-projects" },
+    { label: "Canales", icon: Hash, href: "/channels", tourId: "sidebar-channels" },
+    { label: "Equipo", icon: Users, href: "/team", tourId: "sidebar-team" },
 ];
 
 // Modal to open when "+" is clicked for each nav item
@@ -256,6 +256,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                 "flex items-center rounded-md transition-colors",
                                 isActive ? "bg-accent" : "hover:bg-accent"
                             )}
+                            data-tour-id={item.tourId}
                         >
                             <Link
                                 href={item.href}
@@ -289,6 +290,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                                 ? "hidden"
                                 : pathname === "/clients" || pathname.startsWith("/clients/") ? "bg-accent" : "hover:bg-accent"
                     )}
+                    data-tour-id="sidebar-clients"
                 >
                     <Link
                         href="/clients"
@@ -315,7 +317,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
             <ScrollArea className="flex-1">
 
                 {/* CLIENTES Section */}
-                <div className="py-2">
+                <div className="py-2" data-tour-id="sidebar-spaces-tree">
                     <div className="flex items-center justify-between px-2.5">
                         <button
                             onClick={() => setClientsExpanded(!clientsExpanded)}
@@ -541,6 +543,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                 <div className="px-2 py-2">
                     <Link
                         href="/reports"
+                        data-tour-id="sidebar-reports"
                         className={cn(
                             "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
                             pathname === "/reports" || pathname.startsWith("/reports/")
@@ -558,6 +561,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
             <div className="border-t border-border px-2 py-2 space-y-0.5">
                 <Link
                     href="/settings"
+                    data-tour-id="sidebar-settings"
                     className={cn(
                         "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
                         pathname === "/settings"

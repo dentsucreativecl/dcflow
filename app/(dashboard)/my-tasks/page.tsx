@@ -179,7 +179,7 @@ export default function MyTasksPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-tour-id="my-tasks-filters">
         {([
           { key: "all", label: "Todas" },
           { key: "todo", label: "Por hacer" },
